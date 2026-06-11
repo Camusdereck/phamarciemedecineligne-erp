@@ -4,608 +4,285 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Medecineligne — Pharmacie Dr. Soko Waza</title>
-    <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['DM Sans', 'sans-serif'],
-                        display: ['Space Grotesk', 'sans-serif']
-                    },
-                    colors: {
-                        medical: {
-                            50: '#eff6ff',
-                            100: '#dbeafe',
-                            200: '#bfdbfe',
-                            500: '#3b82f6',
-                            600: '#2563EB',
-                            700: '#1d4ed8',
-                            900: '#1e3a8a'
-                        }
-                    }
-                }
-            }
-        }
-    </script>
-    <style>
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-        
-        .nav-item.active { background-color: #1e293b; color: #ffffff; border-left: 4px solid #3b82f6; }
-        
-        .modal-overlay { opacity: 0; pointer-events: none; transition: opacity 0.2s ease-out; }
-        .modal-overlay.open { opacity: 1; pointer-events: auto; }
-        .modal-box { transform: translateY(20px); transition: transform 0.2s ease-out; }
-        .modal-overlay.open .modal-box { transform: translateY(0); }
-        
-        @media print {
-    /* Cache absolument TOUTE l'application */
-    body > *:not(#print-receipt-area) { 
-        display: none !important; 
-    }
-    
-    /* Force l'affichage unique du ticket */
-    #print-receipt-area { 
-        display: block !important; 
-        visibility: visible !important;
-        position: relative !important;
-        width: 100% !important;
-        margin: 0 !important;
-        padding: 0 !important;
-    }
-    
-    /* Enlève les marges par défaut du navigateur */
-    @page { margin: 0; }
-}
-    </style>
+    <link rel="stylesheet" href="output.css">
 </head>
-<body class="bg-gray-50 text-gray-900 font-sans antialiased">
+<body class="bg-gray-50 text-gray-900 font-sans antialiased overflow-hidden" id="app-body">
 
-    <aside id="sidebar" class="fixed inset-y-0 left-0 z-50 w-64 bg-slate-900 flex flex-col transition-transform duration-300 -translate-x-full lg:translate-x-0">
-        <div class="px-5 py-6 border-b border-slate-800">
-            <div class="flex items-center gap-3">
-                <div class="w-10 h-10 bg-medical-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-medical-600/20">
-                    <svg viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6"><path d="M19 3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V5a2 2 0 00-2-2zm-7 3a1 1 0 011 1v3h3a1 1 0 010 2h-3v3a1 1 0 01-2 0v-3H8a1 1 0 010-2h3V7a1 1 0 011-1z"/></svg>
+    <div id="login-screen" class="fixed inset-0 bg-slate-900 z-[200] flex items-center justify-center p-4 transition-opacity duration-300">
+        <div class="bg-white rounded-2xl p-8 w-full max-w-md shadow-2xl">
+            <div class="text-center mb-8">
+                <div class="w-16 h-16 bg-medical-600 rounded-2xl flex items-center justify-center text-white mx-auto mb-4 shadow-lg shadow-medical-600/30">
+                    <svg viewBox="0 0 24 24" fill="currentColor" class="w-8 h-8"><path d="M19 3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V5a2 2 0 00-2-2zm-7 3a1 1 0 011 1v3h3a1 1 0 010 2h-3v3a1 1 0 01-2 0v-3H8a1 1 0 010-2h3V7a1 1 0 011-1z"/></svg>
+                </div>
+                <h2 class="font-display text-2xl font-bold text-gray-900">Medecineligne ERP</h2>
+                <p class="text-sm text-gray-500 mt-1">Espace réservé au personnel</p>
+            </div>
+            <form id="login-form" class="space-y-5">
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Email</label>
+                    <input type="email" id="login-email" required class="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-medical-500 outline-none">
                 </div>
                 <div>
-                    <h1 class="font-display font-bold text-white text-lg leading-tight">Medecineligne</h1>
-                    <p class="text-slate-400 text-xs font-medium">Dr. Soko Waza</p>
+                    <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Mot de passe</label>
+                    <input type="password" id="login-password" required class="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-medical-500 outline-none">
                 </div>
-            </div>
-        </div>
-
-        <nav class="flex-1 py-4 overflow-y-auto space-y-1">
-            <div class="px-5 py-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">Principal</div>
-            <a onclick="navigate('dashboard')" id="nav-dashboard" class="nav-item active flex items-center gap-3 px-5 py-3 text-slate-400 text-sm font-medium hover:bg-slate-800 hover:text-white cursor-pointer transition-all border-l-4 border-transparent">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
-                Tableau de bord
-            </a>
-
-            <div class="px-5 pt-4 pb-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">Stocks & Magasins</div>
-            <a onclick="navigate('entrepot')" id="nav-entrepot" class="nav-item flex items-center gap-3 px-5 py-3 text-slate-400 text-sm font-medium hover:bg-slate-800 hover:text-white cursor-pointer transition-all border-l-4 border-transparent">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-                Entrepôt (Réserve)
-            </a>
-            <a onclick="navigate('officine')" id="nav-officine" class="nav-item flex items-center gap-3 px-5 py-3 text-slate-400 text-sm font-medium hover:bg-slate-800 hover:text-white cursor-pointer transition-all border-l-4 border-transparent">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
-                Officine (Rayons)
-            </a>
-
-            <div class="px-5 pt-4 pb-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">Ventes & CRM</div>
-            <a onclick="navigate('caisse')" id="nav-caisse" class="nav-item flex items-center gap-3 px-5 py-3 text-slate-400 text-sm font-medium hover:bg-slate-800 hover:text-white cursor-pointer transition-all border-l-4 border-transparent">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
-                Caisse (Ventes)
-            </a>
-            <a onclick="navigate('crm')" id="nav-crm" class="nav-item flex items-center gap-3 px-5 py-3 text-slate-400 text-sm font-medium hover:bg-slate-800 hover:text-white cursor-pointer transition-all border-l-4 border-transparent">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
-                Gestion Clientèle (CRM)
-            </a>
-
-            <div class="px-5 pt-4 pb-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">Audit & Contrôle</div>
-            <a onclick="navigate('inventaire')" id="nav-inventaire" class="nav-item flex items-center gap-3 px-5 py-3 text-slate-400 text-sm font-medium hover:bg-slate-800 hover:text-white cursor-pointer transition-all border-l-4 border-transparent">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
-                Rapprochement d'Inv.
-            </a>
-        </nav>
-
-        <div class="p-5 border-t border-slate-800 text-xs text-slate-500 leading-relaxed">
-            <div class="font-bold text-slate-400">Agence Satmak</div>
-            <div class="text-slate-300">Guelade Camus Dereck</div>
-            <div class="mt-1 opacity-75">© 2026 · Version Pro v2.0</div>
-        </div>
-    </aside>
-
-    <div id="mob-overlay" onclick="toggleSidebar()" class="fixed inset-0 bg-slate-900/50 z-40 hidden backdrop-blur-sm"></div>
-
-    <main class="lg:ml-64 min-h-screen flex flex-col transition-all duration-300">
-        
-        <header class="h-16 bg-white border-b border-gray-200 px-6 flex items-center justify-between sticky top-0 z-30">
-            <div class="flex items-center gap-4">
-                <button onclick="toggleSidebar()" class="lg:hidden text-gray-500 hover:text-gray-700 focus:outline-none">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+                <button type="submit" id="login-btn" class="w-full py-3.5 bg-medical-600 hover:bg-medical-700 text-white font-bold rounded-xl shadow-md">
+                    Déverrouiller le système
                 </button>
-                <h2 id="page-title" class="font-display text-xl font-bold text-gray-800">Tableau de bord</h2>
-            </div>
-            <div class="flex items-center gap-4">
-                <span id="topbar-date" class="text-sm font-medium text-gray-500 hidden sm:block"></span>
-                <div class="w-9 h-9 rounded-full bg-medical-100 text-medical-700 font-bold flex items-center justify-center border border-medical-200 text-sm">SW</div>
-            </div>
-        </header>
-
-        <div class="flex-1 p-6 overflow-x-hidden">
-
-            <div id="page-dashboard" class="page block space-y-6">
-                <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
-                    <div class="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <p class="text-xs font-bold text-gray-400 uppercase tracking-wide">Ventes du Jour</p>
-                                <h3 id="stat-ventes" class="font-display text-2xl font-bold text-gray-900 mt-1">0 FCFA</h3>
-                                <p id="stat-ventes-nb" class="text-xs text-gray-500 mt-1 font-medium">0 transaction(s)</p>
-                            </div>
-                            <div class="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <p class="text-xs font-bold text-gray-400 uppercase tracking-wide">Valeur Globale Stock</p>
-                                <h3 id="stat-stock" class="font-display text-2xl font-bold text-gray-900 mt-1">0 FCFA</h3>
-                                <p class="text-xs text-gray-500 mt-1 font-medium">Réserve + Officine</p>
-                            </div>
-                            <div class="w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <p class="text-xs font-bold text-gray-400 uppercase tracking-wide">Alertes Stock Critique</p>
-                                <h3 id="stat-ruptures" class="font-display text-2xl font-bold text-red-600 mt-1">0</h3>
-                                <p class="text-xs text-gray-500 mt-1 font-medium">Seuils d'alerte atteints</p>
-                            </div>
-                            <div class="w-10 h-10 rounded-lg bg-red-50 flex items-center justify-center text-red-600">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <p class="text-xs font-bold text-gray-400 uppercase tracking-wide">Clients Enregistrés</p>
-                                <h3 id="stat-clients" class="font-display text-2xl font-bold text-gray-900 mt-1">0</h3>
-                                <p class="text-xs text-gray-500 mt-1 font-medium font-semibold text-amber-600" id="stat-dettes-total">Créances: 0 FCFA</p>
-                            </div>
-                            <div class="w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center text-amber-600">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <div class="lg:col-span-2 bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-                        <h3 class="font-display font-bold text-gray-800 mb-6">Chiffre d'Affaires Hebdomadaire (7 derniers jours)</h3>
-                        <div id="chart-bars" class="flex items-end gap-4 h-48 pb-4 border-b border-gray-100 relative"></div>
-                        <div id="chart-labels" class="flex gap-4 mt-2"></div>
-                    </div>
-                    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 flex flex-col">
-                        <h3 class="font-display font-bold text-gray-800 mb-4">Seuils Critiques & Ruptures</h3>
-                        <div id="alerts-list" class="space-y-3 flex-1 overflow-y-auto max-h-[220px]"></div>
-                    </div>
-                </div>
-
-                <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-                    <div class="px-6 py-4 border-b border-gray-200 bg-gray-50/70">
-                        <h3 class="font-display font-bold text-gray-800">Derniers Flux de Caisse</h3>
-                    </div>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left border-collapse">
-                            <thead>
-                                <tr class="bg-gray-50 border-b border-gray-200 text-xs font-bold text-gray-500 uppercase tracking-wider">
-                                    <th class="px-6 py-3">N° Facture</th>
-                                    <th class="px-6 py-3">Client</th>
-                                    <th class="px-6 py-3">Mode Paiement</th>
-                                    <th class="px-6 py-3">Montant Net</th>
-                                    <th class="px-6 py-3">Horodatage</th>
-                                    <th class="px-6 py-3 text-right">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="recent-sales-body" class="divide-y divide-gray-100 text-sm"></tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <div id="page-entrepot" class="page hidden space-y-6">
-                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                    <div>
-                        <h2 class="font-display text-2xl font-bold text-gray-900">Entrepôt central (Stock de Réserve)</h2>
-                        <p class="text-sm text-gray-500 mt-1">Gérez l'approvisionnement global de la pharmacie avant la répartition en rayons.</p>
-                    </div>
-                    <div class="flex gap-3 w-full sm:w-auto">
-                        <button onclick="openModal('modal-add-product')" class="flex-1 sm:flex-none px-4 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors shadow-sm flex items-center justify-center gap-2">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Nouveau Médicament
-                        </button>
-                        <button onclick="openModal('modal-add-stock')" class="flex-1 sm:flex-none px-4 py-2.5 bg-medical-600 text-white rounded-xl text-sm font-medium hover:bg-medical-700 transition-colors shadow-sm flex items-center justify-center gap-2">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/><path d="M9 18H5a2 2 0 01-2-2V8a2 2 0 012-2h4"/></svg> Réceptionner Lot
-                        </button>
-                    </div>
-                </div>
-
-                <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-                    <div class="p-4 border-b border-gray-200 bg-gray-50/50">
-                        <input type="text" id="search-entrepot" oninput="renderEntrepot()" placeholder="🔍 Filtrer par désignation ou catégorie commerciale..." class="w-full max-w-md px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-medical-500 outline-none transition-all">
-                    </div>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left border-collapse">
-                            <thead>
-                                <tr class="bg-gray-50 border-b border-gray-200 text-xs font-bold text-gray-500 uppercase tracking-wider">
-                                    <th class="px-6 py-3">Désignation</th>
-                                    <th class="px-6 py-3">Catégorie</th>
-                                    <th class="px-6 py-3">Stock Réserve</th>
-                                    <th class="px-6 py-3">P.A.U Unitaire</th>
-                                    <th class="px-6 py-3">P.V.U Public</th>
-                                    <th class="px-6 py-3">Péremption</th>
-                                    <th class="px-6 py-3 text-right">Actions Logistiques</th>
-                                </tr>
-                            </thead>
-                            <tbody id="entrepot-body" class="divide-y divide-gray-100 text-sm"></tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <div id="page-officine" class="page hidden space-y-6">
-                <div>
-                    <h2 class="font-display text-2xl font-bold text-gray-900">Officine (Stock Comptoir & Rayonnages)</h2>
-                    <p class="text-sm text-gray-500 mt-1">Suivi en temps réel des stocks immédiatement accessibles à la vente.</p>
-                </div>
-                <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-                    <div class="p-4 border-b border-gray-200 bg-gray-50/50">
-                        <input type="text" id="search-officine" oninput="renderOfficine()" placeholder="🔍 Filtrer les rayons par mot clé..." class="w-full max-w-md px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-medical-500 outline-none">
-                    </div>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left border-collapse">
-                            <thead>
-                                <tr class="bg-gray-50 border-b border-gray-200 text-xs font-bold text-gray-500 uppercase tracking-wider">
-                                    <th class="px-6 py-3">Désignation</th>
-                                    <th class="px-6 py-3">Catégorie</th>
-                                    <th class="px-6 py-3">Stock Rayons</th>
-                                    <th class="px-6 py-3">Prix Vente TTC</th>
-                                    <th class="px-6 py-3">Statut Alerte</th>
-                                </tr>
-                            </thead>
-                            <tbody id="officine-body" class="divide-y divide-gray-100 text-sm"></tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <div id="page-caisse" class="page hidden">
-                <div class="grid grid-cols-1 xl:grid-cols-3 gap-6 h-[calc(100vh-140px)] min-h-[600px]">
-                    <div class="xl:col-span-2 flex flex-col gap-4 overflow-hidden">
-                        <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4 flex flex-col sm:flex-row gap-3">
-                            <input type="text" id="search-caisse" oninput="searchProducts()" placeholder="🔍 Scanner ou saisir une molécule / spécialité..." class="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-medical-500 outline-none">
-                            <select id="filter-category" onchange="searchProducts()" class="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-medical-500 outline-none bg-white font-medium text-gray-700">
-                                <option value="">Toutes catégories</option>
-                            </select>
-                        </div>
-                        <div class="flex-1 bg-white rounded-xl border border-gray-200 shadow-sm overflow-y-auto p-4">
-                            <div id="products-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4"></div>
-                        </div>
-                    </div>
-
-                    <div class="bg-white rounded-xl border border-gray-200 shadow-sm flex flex-col overflow-hidden">
-                        <div class="p-5 border-b border-gray-200 bg-gray-50/50 space-y-4">
-                            <div class="flex justify-between items-center">
-                                <h3 class="font-display font-bold text-gray-800 text-lg">Terminal POS Actif</h3>
-                                <button onclick="clearCart()" class="text-xs font-bold text-red-600 hover:text-red-800 bg-red-50 hover:bg-red-100 px-2.5 py-1.5 rounded-lg transition-all">Vider le Panier</button>
-                            </div>
-                            <div>
-                                <label class="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">Dossier Patient / Client CRM</label>
-                                <select id="cart-client" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-medical-500 outline-none bg-white">
-                                    <option value="">— Client Comptant —</option>
-                                </select>
-                            </div>
-                        </div>
-                        
-                        <div id="cart-items" class="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50/40"></div>
-                        
-                        <div class="p-5 border-t border-gray-200 bg-gray-50/50 space-y-4">
-                            <div class="space-y-1.5 border-b border-gray-200 pb-3">
-                                <div class="flex justify-between items-center text-sm text-gray-500">
-                                    <span>Sous-total Panier</span>
-                                    <span id="cart-subtotal" class="font-medium">0 FCFA</span>
-                                </div>
-                                <div class="flex justify-between items-center text-xs text-emerald-600 font-medium">
-                                    <span>TVA Comprise (0%)</span>
-                                    <span>0 FCFA</span>
-                                </div>
-                            </div>
-                            <div class="flex justify-between items-center">
-                                <span class="text-base font-bold text-gray-900 font-display">Net à Payer</span>
-                                <span id="cart-total" class="text-2xl font-bold text-medical-600 font-display">0 FCFA</span>
-                            </div>
-                            <div class="space-y-3">
-                                <label class="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">Mode de Règlement</label>
-                                <select id="payment-mode" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-medical-500 outline-none bg-white font-medium">
-                                    <option value="especes">💵 Règlement Espèces</option>
-                                    <option value="mobile_money">📱 Mobile Money (Orange/MTN/Wave)</option>
-                                    <option value="credit">📋 Vente à Crédit (Compte Client)</option>
-                                </select>
-                                <button onclick="validateSale()" class="w-full bg-medical-600 hover:bg-medical-700 text-white font-bold py-3 px-4 rounded-xl shadow-lg shadow-medical-500/20 transition-all flex justify-center items-center gap-2">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
-                                    Encaisser & Facturer
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div id="page-crm" class="page hidden space-y-6">
-                <div id="crm-list-view" class="space-y-6">
-                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                        <div>
-                            <h2 class="font-display text-2xl font-bold text-gray-900">Fichier Clientèle & Comptes de Crédit</h2>
-                            <p class="text-sm text-gray-500 mt-1">Gérez le suivi des ordonnances récurrentes et les balances de paiement débiteur.</p>
-                        </div>
-                        <button onclick="openModal('modal-add-client')" class="w-full sm:w-auto px-4 py-2.5 bg-medical-600 text-white rounded-xl text-sm font-medium hover:bg-medical-700 transition-colors shadow-sm flex items-center justify-center gap-2">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Créer une Fiche Patient
-                        </button>
-                    </div>
-                    <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-                        <div class="p-4 border-b border-gray-200 bg-gray-50/50">
-                            <input type="text" id="search-crm" oninput="renderCRM()" placeholder="🔍 Filtrer par nom complet ou coordonnées téléphoniques..." class="w-full max-w-md px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-medical-500 outline-none">
-                        </div>
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-left border-collapse">
-                                <thead>
-                                    <tr class="bg-gray-50 border-b border-gray-200 text-xs font-bold text-gray-500 uppercase tracking-wider">
-                                        <th class="px-6 py-3">Patient / Société</th>
-                                        <th class="px-6 py-3">Numéro Mobile</th>
-                                        <th class="px-6 py-3">Factures Émises</th>
-                                        <th class="px-6 py-3">Encours Dettes</th>
-                                        <th class="px-6 py-3 text-right">Actions Managériales</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="crm-body" class="divide-y divide-gray-100 text-sm"></tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-
-                <div id="crm-detail-view" class="hidden space-y-6">
-                    <div class="flex items-center gap-4">
-                        <button onclick="showCRMList()" class="p-2 bg-white border border-gray-300 rounded-xl text-gray-600 hover:bg-gray-50 shadow-sm transition-all">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
-                        </button>
-                        <div>
-                            <h2 id="detail-client-name" class="font-display text-2xl font-bold text-gray-900"></h2>
-                            <p class="text-sm text-gray-500">Dossier clinique et financier exhaustif</p>
-                        </div>
-                    </div>
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                        <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
-                            <p class="text-xs text-gray-400 font-bold uppercase tracking-wider">Cumul des Achats</p>
-                            <h3 id="detail-total" class="font-display text-2xl font-bold text-gray-900 mt-1"></h3>
-                        </div>
-                        <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
-                            <p class="text-xs text-gray-400 font-bold uppercase tracking-wider">Nombre de Consultations / Ventes</p>
-                            <h3 id="detail-nb" class="font-display text-2xl font-bold text-gray-900 mt-1"></h3>
-                        </div>
-                        <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
-                            <p class="text-xs text-gray-400 font-bold uppercase tracking-wider">Reste à Recouvrer (Solde Débiteur)</p>
-                            <h3 id="detail-solde" class="font-display text-2xl font-bold mt-1"></h3>
-                        </div>
-                    </div>
-                    <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-                        <div class="p-5 border-b border-gray-200 bg-gray-50/50">
-                            <h3 class="font-display font-bold text-gray-800">Grand livre des factures associées</h3>
-                        </div>
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-left border-collapse">
-                                <thead>
-                                    <tr class="bg-gray-50 border-b border-gray-200 text-xs font-bold text-gray-500 uppercase tracking-wider">
-                                        <th class="px-6 py-3">N° Facture</th>
-                                        <th class="px-6 py-3">Date d'Émission</th>
-                                        <th class="px-6 py-3">Lignes de Prescription</th>
-                                        <th class="px-6 py-3">Montant Total</th>
-                                        <th class="px-6 py-3">Statut Financier</th>
-                                        <th class="px-6 py-3 text-right">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="detail-invoices" class="divide-y divide-gray-100 text-sm"></tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div id="page-inventaire" class="page hidden space-y-6">
-                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                    <div>
-                        <h2 class="font-display text-2xl font-bold text-gray-900">Rapprochement d'Inventaire de Fin de Période</h2>
-                        <p class="text-sm text-gray-500 mt-1">Auditez les écarts entre les stocks informatiques théoriques et les comptages physiques réels.</p>
-                    </div>
-                    <div class="flex gap-3 w-full sm:w-auto">
-                        <button onclick="resetInventaire()" class="flex-1 sm:flex-none px-4 py-2.5 bg-red-50 text-red-600 border border-red-200 rounded-xl text-sm font-medium hover:bg-red-100 transition-colors shadow-sm">
-                            Vider Saisies
-                        </button>
-                        <button onclick="appliquerAjustementsGlobaux()" class="flex-1 sm:flex-none px-4 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-medium hover:bg-emerald-700 transition-all shadow-md flex items-center justify-center gap-2">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Appliquer l'Ajustement
-                        </button>
-                    </div>
-                </div>
-
-                <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex flex-wrap gap-6 items-center">
-                    <div class="flex items-center gap-2 text-sm">
-                        <span class="px-2.5 py-1 bg-green-100 text-green-700 rounded-full font-bold text-xs">✓ Lignes Conformes</span>
-                        <span id="inv-conforme-count" class="font-bold text-gray-800">0</span>
-                    </div>
-                    <div class="flex items-center gap-2 text-sm">
-                        <span class="px-2.5 py-1 bg-red-100 text-red-700 rounded-full font-bold text-xs">⚠ Écarts de Perte</span>
-                        <span id="inv-perte-count" class="font-bold text-gray-800">0</span>
-                    </div>
-                    <div class="flex items-center gap-2 text-sm">
-                        <span class="px-2.5 py-1 bg-blue-100 text-blue-700 rounded-full font-bold text-xs">+ Écarts de Surplus</span>
-                        <span id="inv-surplus-count" class="font-bold text-gray-800">0</span>
-                    </div>
-                </div>
-
-                <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left border-collapse">
-                            <thead>
-                                <tr class="bg-gray-50 border-b border-gray-200 text-xs font-bold text-gray-500 uppercase tracking-wider">
-                                    <th class="px-6 py-3">Produit</th>
-                                    <th class="px-6 py-3">Localisation</th>
-                                    <th class="px-6 py-3">Stock Théorique (ERP)</th>
-                                    <th class="px-6 py-3" style="width:160px">Stock Physique Réel</th>
-                                    <th class="px-6 py-3">Écart de Quantité</th>
-                                    <th class="px-6 py-3">Impact Financier (Vente)</th>
-                                    <th class="px-6 py-3">Avis / Statut</th>
-                                </tr>
-                            </thead>
-                            <tbody id="inventaire-body" class="divide-y divide-gray-100 text-sm"></tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
+            </form>
+            <div class="mt-6 text-center text-xs text-gray-400 font-medium">Agence Satmak © 2026</div>
         </div>
-    </main>
+    </div>
+
+    <div id="main-app" class="opacity-0 pointer-events-none h-screen flex flex-col transition-opacity duration-300">
+        
+        <aside id="sidebar" class="fixed inset-y-0 left-0 z-50 w-64 bg-slate-900 flex flex-col transition-transform duration-300 -translate-x-full lg:translate-x-0">
+            <div class="px-5 py-6 border-b border-slate-800">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-medical-600 rounded-xl flex items-center justify-center text-white">
+                        <svg viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6"><path d="M19 3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V5a2 2 0 00-2-2zm-7 3a1 1 0 011 1v3h3a1 1 0 010 2h-3v3a1 1 0 01-2 0v-3H8a1 1 0 010-2h3V7a1 1 0 011-1z"/></svg>
+                    </div>
+                    <div>
+                        <h1 class="font-display font-bold text-white text-lg">Medecineligne</h1>
+                        <p class="text-slate-400 text-xs font-medium">Dr. Soko Waza</p>
+                    </div>
+                </div>
+            </div>
+
+            <nav class="flex-1 py-4 overflow-y-auto space-y-1">
+                <div class="px-5 py-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">Principal</div>
+                <a onclick="navigate('dashboard')" id="nav-dashboard" class="nav-item active flex items-center gap-3 px-5 py-3 text-slate-400 text-sm font-medium hover:bg-slate-800 hover:text-white cursor-pointer border-l-4 border-transparent">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg> Tableau de bord
+                </a>
+
+                <div class="px-5 pt-4 pb-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">Stocks & Magasins</div>
+                <a onclick="navigate('entrepot')" id="nav-entrepot" class="nav-item flex items-center gap-3 px-5 py-3 text-slate-400 text-sm font-medium hover:bg-slate-800 hover:text-white cursor-pointer border-l-4 border-transparent">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> Entrepôt (Réserve)
+                </a>
+                <a onclick="navigate('officine')" id="nav-officine" class="nav-item flex items-center gap-3 px-5 py-3 text-slate-400 text-sm font-medium hover:bg-slate-800 hover:text-white cursor-pointer border-l-4 border-transparent">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg> Officine (Rayons)
+                </a>
+
+                <div class="px-5 pt-4 pb-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">Ventes & CRM</div>
+                <a onclick="navigate('caisse')" id="nav-caisse" class="nav-item flex items-center gap-3 px-5 py-3 text-slate-400 text-sm font-medium hover:bg-slate-800 hover:text-white cursor-pointer border-l-4 border-transparent">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg> Caisse (Ventes)
+                </a>
+                <a onclick="navigate('crm')" id="nav-crm" class="nav-item flex items-center gap-3 px-5 py-3 text-slate-400 text-sm font-medium hover:bg-slate-800 hover:text-white cursor-pointer border-l-4 border-transparent">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg> Gestion Clientèle
+                </a>
+
+                <div class="px-5 pt-4 pb-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">Sécurité & Contrôle</div>
+                <a onclick="navigate('audit')" id="nav-audit" class="nav-item flex items-center gap-3 px-5 py-3 text-slate-400 text-sm font-medium hover:bg-slate-800 hover:text-white cursor-pointer border-l-4 border-transparent">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg> Traçabilité Mouvements
+                </a>
+                <a onclick="navigate('inventaire')" id="nav-inventaire" class="nav-item flex items-center gap-3 px-5 py-3 text-slate-400 text-sm font-medium hover:bg-slate-800 hover:text-white cursor-pointer border-l-4 border-transparent">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg> Audit Inventaire
+                </a>
+            </nav>
+
+            <div class="p-5 border-t border-slate-800">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2 overflow-hidden">
+                        <div class="w-8 h-8 rounded-full bg-slate-700 text-slate-300 font-bold flex items-center justify-center text-xs" id="user-avatar">?</div>
+                        <div class="truncate">
+                            <p class="text-xs font-bold text-white truncate" id="user-name">Chargement...</p>
+                            <p class="text-[10px] text-slate-400 uppercase" id="user-role">...</p>
+                        </div>
+                    </div>
+                    <button onclick="handleLogout()" class="text-slate-500 hover:text-red-400" title="Verrouiller session">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <div id="mob-overlay" onclick="toggleSidebar()" class="fixed inset-0 bg-slate-900/50 z-40 hidden backdrop-blur-sm"></div>
+
+        <main class="lg:ml-64 flex-1 flex flex-col h-full overflow-hidden">
+            <header class="h-16 bg-white border-b border-gray-200 px-6 flex items-center justify-between z-30">
+                <div class="flex items-center gap-4">
+                    <button onclick="toggleSidebar()" class="lg:hidden text-gray-500 hover:text-gray-700">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+                    </button>
+                    <h2 id="page-title" class="font-display text-xl font-bold text-gray-800">Tableau de bord</h2>
+                </div>
+                <div><span id="topbar-date" class="text-sm font-medium text-gray-500 hidden sm:block"></span></div>
+            </header>
+
+            <div class="flex-1 p-6 overflow-y-auto">
+                <div id="page-dashboard" class="page block space-y-6">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
+                        <div class="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
+                            <div class="flex justify-between items-start">
+                                <div><p class="text-xs font-bold text-gray-400 uppercase tracking-wide">Ventes du Jour</p><h3 id="stat-ventes" class="font-display text-2xl font-bold text-gray-900 mt-1">0 FCFA</h3><p id="stat-ventes-nb" class="text-xs text-gray-500 mt-1 font-medium">0 vente(s)</p></div>
+                                <div class="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600"><svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div>
+                            </div>
+                        </div>
+                        <div class="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
+                            <div class="flex justify-between items-start">
+                                <div><p class="text-xs font-bold text-gray-400 uppercase tracking-wide">Valeur Stock</p><h3 id="stat-stock" class="font-display text-2xl font-bold text-gray-900 mt-1">0 FCFA</h3></div>
+                                <div class="w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600"><svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg></div>
+                            </div>
+                        </div>
+                        <div class="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
+                            <div class="flex justify-between items-start">
+                                <div><p class="text-xs font-bold text-gray-400 uppercase tracking-wide">Ruptures</p><h3 id="stat-ruptures" class="font-display text-2xl font-bold text-red-600 mt-1">0</h3></div>
+                                <div class="w-10 h-10 rounded-lg bg-red-50 flex items-center justify-center text-red-600"><svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
+                            </div>
+                        </div>
+                        <div class="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
+                            <div class="flex justify-between items-start">
+                                <div><p class="text-xs font-bold text-gray-400 uppercase tracking-wide">Clients</p><h3 id="stat-clients" class="font-display text-2xl font-bold text-gray-900 mt-1">0</h3><p class="text-xs text-amber-600 mt-1 font-semibold" id="stat-dettes-total">Créances: 0</p></div>
+                                <div class="w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center text-amber-600"><svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div class="lg:col-span-2 bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+                            <h3 class="font-display font-bold text-gray-800 mb-6">Chiffre d'Affaires Hebdomadaire</h3>
+                            <div id="chart-bars" class="flex items-end gap-4 h-48 pb-4 border-b border-gray-100 relative"></div>
+                            <div id="chart-labels" class="flex gap-4 mt-2"></div>
+                        </div>
+                        <div class="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+                            <h3 class="font-display font-bold text-gray-800 mb-4">Seuils Critiques</h3>
+                            <div id="alerts-list" class="space-y-3 overflow-y-auto max-h-[220px]"></div>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                        <div class="px-6 py-4 border-b border-gray-200 bg-gray-50/70"><h3 class="font-display font-bold text-gray-800">Derniers Flux de Caisse</h3></div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left">
+                                <thead><tr class="bg-gray-50 border-b text-xs font-bold text-gray-500 uppercase"><th class="px-6 py-3">N° Facture</th><th class="px-6 py-3">Client</th><th class="px-6 py-3">Paiement</th><th class="px-6 py-3">Montant</th><th class="px-6 py-3">Date</th><th class="px-6 py-3">Action</th></tr></thead>
+                                <tbody id="recent-sales-body" class="divide-y divide-gray-100 text-sm"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="page-entrepot" class="page hidden space-y-6">
+                    <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+                        <h2 class="font-display text-2xl font-bold">Entrepôt central</h2>
+                        <div class="flex gap-3">
+                            <button onclick="openModal('modal-add-product')" class="px-4 py-2 border border-gray-300 rounded-xl text-sm font-medium hover:bg-gray-50">Nouveau Produit</button>
+                            <button onclick="openModal('modal-add-stock')" class="px-4 py-2 bg-medical-600 text-white rounded-xl text-sm font-medium hover:bg-medical-700">Réceptionner Lot</button>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+                        <div class="p-4 border-b bg-gray-50/50"><input type="text" id="search-entrepot" oninput="renderEntrepot()" placeholder="🔍 Chercher..." class="w-full max-w-md px-4 py-2 border rounded-lg text-sm"></div>
+                        <div class="overflow-x-auto"><table class="w-full text-left"><tbody id="entrepot-body" class="divide-y text-sm"></tbody></table></div>
+                    </div>
+                </div>
+
+                <div id="page-officine" class="page hidden space-y-6">
+                    <h2 class="font-display text-2xl font-bold">Officine (Rayons)</h2>
+                    <div class="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+                        <div class="p-4 border-b bg-gray-50/50"><input type="text" id="search-officine" oninput="renderOfficine()" placeholder="🔍 Chercher..." class="w-full max-w-md px-4 py-2 border rounded-lg text-sm"></div>
+                        <div class="overflow-x-auto"><table class="w-full text-left"><tbody id="officine-body" class="divide-y text-sm"></tbody></table></div>
+                    </div>
+                </div>
+
+                <div id="page-caisse" class="page hidden">
+                    <div class="grid grid-cols-1 xl:grid-cols-3 gap-6 h-[calc(100vh-140px)] min-h-[600px]">
+                        <div class="xl:col-span-2 flex flex-col gap-4">
+                            <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4 flex gap-3">
+                                <input type="text" id="search-caisse" oninput="searchProducts()" placeholder="🔍 Scanner ou chercher..." class="flex-1 px-4 py-2 border rounded-lg text-sm">
+                                <select id="filter-category" onchange="searchProducts()" class="px-4 py-2 border rounded-lg text-sm"></select>
+                            </div>
+                            <div class="flex-1 bg-white rounded-xl border shadow-sm overflow-y-auto p-4"><div id="products-grid" class="grid grid-cols-2 md:grid-cols-3 gap-4"></div></div>
+                        </div>
+                        <div class="bg-white rounded-xl border flex flex-col overflow-hidden shadow-sm">
+                            <div class="p-5 border-b bg-gray-50/50 flex flex-col gap-3">
+                                <div class="flex justify-between items-center"><h3 class="font-bold text-lg">Caisse</h3><button onclick="clearCart()" class="text-xs text-red-600 bg-red-50 px-2 py-1 rounded-lg">Vider</button></div>
+                                <select id="cart-client" class="w-full px-3 py-2 border rounded-lg text-sm"></select>
+                            </div>
+                            <div id="cart-items" class="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50/40"></div>
+                            <div class="p-5 border-t">
+                                <div class="flex justify-between items-center mb-4"><span class="text-base font-bold">Total</span><span id="cart-total" class="text-2xl font-bold text-medical-600 font-display">0 FCFA</span></div>
+                                <select id="payment-mode" class="w-full px-4 py-2.5 border rounded-lg mb-3 text-sm"><option value="especes">Espèces</option><option value="mobile_money">Mobile Money</option><option value="credit">Crédit</option></select>
+                                <button onclick="validateSale()" class="w-full bg-medical-600 text-white font-bold py-3 rounded-xl hover:bg-medical-700">Encaisser & Facturer</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="page-crm" class="page hidden space-y-6">
+                    <div id="crm-list-view">
+                        <div class="flex justify-between mb-4"><h2 class="font-display text-2xl font-bold">Clientèle</h2><button onclick="openModal('modal-add-client')" class="px-4 py-2 bg-medical-600 text-white rounded-xl text-sm font-medium shadow-sm">Nouveau Client</button></div>
+                        <div class="bg-white rounded-xl border shadow-sm overflow-hidden"><table class="w-full text-left"><tbody id="crm-body" class="divide-y text-sm"></tbody></table></div>
+                    </div>
+                    <div id="crm-detail-view" class="hidden space-y-6">
+                        <div class="flex items-center gap-4"><button onclick="showCRMList()" class="p-2 border rounded-xl hover:bg-gray-50">←</button><h2 id="detail-client-name" class="font-display text-2xl font-bold"></h2></div>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                            <div class="bg-white p-5 rounded-xl border"><p class="text-xs text-gray-400 font-bold uppercase">Total Achats</p><h3 id="detail-total" class="font-display text-2xl font-bold mt-1"></h3></div>
+                            <div class="bg-white p-5 rounded-xl border"><p class="text-xs text-gray-400 font-bold uppercase">Factures</p><h3 id="detail-nb" class="font-display text-2xl font-bold mt-1"></h3></div>
+                            <div class="bg-white p-5 rounded-xl border"><p class="text-xs text-gray-400 font-bold uppercase">Dette</p><h3 id="detail-solde" class="font-display text-2xl font-bold mt-1"></h3></div>
+                        </div>
+                        <div class="bg-white rounded-xl border shadow-sm overflow-hidden"><table class="w-full text-left"><tbody id="detail-invoices" class="divide-y text-sm"></tbody></table></div>
+                    </div>
+                </div>
+
+                <div id="page-inventaire" class="page hidden space-y-6">
+                    <div class="flex justify-between items-center"><h2 class="font-display text-2xl font-bold">Rapprochement d'Inventaire</h2><button onclick="appliquerAjustementsGlobaux()" class="px-4 py-2 bg-emerald-600 text-white rounded-xl text-sm font-bold shadow-md">Appliquer Ajustements</button></div>
+                    <div class="bg-white p-4 rounded-xl border flex gap-6 text-sm"><span id="inv-conforme-count" class="font-bold text-green-700">0</span><span id="inv-perte-count" class="font-bold text-red-700">0</span><span id="inv-surplus-count" class="font-bold text-blue-700">0</span></div>
+                    <div class="bg-white rounded-xl border shadow-sm overflow-hidden"><table class="w-full text-left"><tbody id="inventaire-body" class="divide-y text-sm"></tbody></table></div>
+                </div>
+
+                <div id="page-audit" class="page hidden space-y-6">
+                    <h2 class="font-display text-2xl font-bold">Traçabilité Mouvements</h2>
+                    <div class="bg-white rounded-xl border shadow-sm overflow-hidden"><table class="w-full text-left"><tbody id="audit-body" class="divide-y text-sm"></tbody></table></div>
+                </div>
+            </div>
+        </main>
+    </div>
 
     <div id="print-receipt-area" class="hidden font-mono p-4 text-xs bg-white text-black max-w-sm mx-auto"></div>
 
-    <div id="modal-transfer" class="modal-overlay fixed inset-0 bg-slate-900/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+    <div id="modal-transfer" class="modal-overlay fixed inset-0 bg-slate-900/50 z-50 flex items-center justify-center p-4">
         <div class="modal-box bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl">
-            <h3 class="font-display font-bold text-xl text-gray-900 mb-1">Mise en Rayons (Logistique Interne)</h3>
-            <p id="transfer-product-name" class="text-sm text-gray-500 mb-4 font-medium"></p>
-            <div class="space-y-4">
-                <div class="p-4 bg-medical-50 rounded-xl border border-medical-100 flex justify-between items-center">
-                    <div>
-                        <p class="text-[10px] font-bold text-medical-700 uppercase tracking-wider">Disponibilité Réserve</p>
-                        <p id="transfer-available" class="font-display text-2xl font-bold text-medical-900 mt-0.5"></p>
-                    </div>
-                    <div class="text-right">
-                        <p class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">En Rayons Actuel</p>
-                        <p id="transfer-officine-current" class="font-display text-xl font-bold text-gray-700 mt-0.5"></p>
-                    </div>
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Quantité à transférer vers l'Officine *</label>
-                    <input type="number" id="transfer-qty" placeholder="Ex: 20" min="1" class="w-full px-4 py-3 border border-gray-300 rounded-xl text-lg focus:ring-2 focus:ring-medical-500 outline-none font-semibold">
-                </div>
-            </div>
-            <div class="flex gap-3 mt-6">
-                <button onclick="closeModal('modal-transfer')" class="flex-1 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors">Annuler</button>
-                <button onclick="executeTransfer()" class="flex-1 px-4 py-2.5 bg-medical-600 text-white rounded-xl font-medium hover:bg-medical-700 shadow-md shadow-medical-500/10 transition-colors">Confirmer le transfert</button>
-            </div>
+            <h3 class="font-display font-bold text-xl mb-4">Transfert vers Officine</h3>
+            <p id="transfer-product-name" class="mb-4 text-sm font-bold"></p>
+            <input type="number" id="transfer-qty" placeholder="Quantité" class="w-full px-4 py-3 border rounded-xl mb-4 text-lg outline-none focus:border-medical-500">
+            <div class="flex gap-3"><button onclick="closeModal('modal-transfer')" class="flex-1 py-2.5 bg-gray-100 rounded-xl font-bold">Annuler</button><button onclick="executeTransfer()" class="flex-1 py-2.5 bg-medical-600 text-white rounded-xl font-bold">Transférer</button></div>
         </div>
     </div>
 
-    <div id="modal-add-product" class="modal-overlay fixed inset-0 bg-slate-900/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+    <div id="modal-add-product" class="modal-overlay fixed inset-0 bg-slate-900/50 z-50 flex items-center justify-center p-4">
         <div class="modal-box bg-white rounded-2xl p-6 w-full max-w-lg shadow-2xl">
-            <h3 class="font-display font-bold text-xl text-gray-900 mb-4">Créer une Référence Article (Master Data)</h3>
+            <h3 class="font-display font-bold text-xl mb-4">Nouveau Produit</h3>
             <div class="grid grid-cols-2 gap-4 text-sm">
-                <div class="col-span-2">
-                    <label class="block text-xs font-bold text-gray-600 mb-1">Désignation du Produit / Forme *</label>
-                    <input type="text" id="np-name" placeholder="Ex: Amoxicilline Gellule 500mg" class="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:border-medical-500">
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-gray-600 mb-1">Catégorie Thérapeutique</label>
-                    <input type="text" id="np-cat" placeholder="Ex: Antibiotiques" class="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:border-medical-500">
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-gray-600 mb-1">Conditionnement / Unité</label>
-                    <input type="text" id="np-unit" placeholder="Ex: Boîte de 30" class="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:border-medical-500">
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-gray-600 mb-1">Prix d'Achat Unitaire (FCFA) *</label>
-                    <input type="number" id="np-buy" placeholder="0" class="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:border-medical-500">
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-gray-600 mb-1">Prix de Vente Public (FCFA) *</label>
-                    <input type="number" id="np-sell" placeholder="0" class="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:border-medical-500">
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-gray-600 mb-1">Stock Initial Réserve</label>
-                    <input type="number" id="np-qty" placeholder="0" class="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:border-medical-500">
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-gray-600 mb-1">Seuil Alerte Sécurité</label>
-                    <input type="number" id="np-alert" value="10" class="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:border-medical-500">
-                </div>
-                <div class="col-span-2">
-                    <label class="block text-xs font-bold text-gray-600 mb-1">Date Limite de Péremption (MM/AAAA)</label>
-                    <input type="text" id="np-exp" placeholder="Ex: 12/2028" class="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:border-medical-500">
-                </div>
+                <div class="col-span-2"><input type="text" id="np-name" placeholder="Nom du produit *" class="w-full px-3 py-2 border rounded-lg"></div>
+                <div><input type="text" id="np-cat" placeholder="Catégorie" class="w-full px-3 py-2 border rounded-lg"></div>
+                <div><input type="text" id="np-unit" placeholder="Unité (Boîte...)" class="w-full px-3 py-2 border rounded-lg"></div>
+                <div><input type="number" id="np-buy" placeholder="Prix d'achat *" class="w-full px-3 py-2 border rounded-lg"></div>
+                <div><input type="number" id="np-sell" placeholder="Prix de vente *" class="w-full px-3 py-2 border rounded-lg"></div>
+                <div><input type="number" id="np-qty" placeholder="Qté Réserve" class="w-full px-3 py-2 border rounded-lg"></div>
+                <div><input type="number" id="np-alert" placeholder="Seuil alerte" class="w-full px-3 py-2 border rounded-lg"></div>
             </div>
-            <div class="flex gap-3 mt-6">
-                <button onclick="closeModal('modal-add-product')" class="flex-1 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-xl font-medium">Annuler</button>
-                <button onclick="addProduct()" class="flex-1 px-4 py-2.5 bg-medical-600 text-white rounded-xl font-medium hover:bg-medical-700 shadow-md">Sauvegarder</button>
-            </div>
+            <div class="flex gap-3 mt-6"><button onclick="closeModal('modal-add-product')" class="flex-1 py-2.5 bg-gray-100 rounded-xl font-bold">Annuler</button><button onclick="addProduct()" class="flex-1 py-2.5 bg-medical-600 text-white rounded-xl font-bold">Sauvegarder</button></div>
         </div>
     </div>
 
-    <div id="modal-add-stock" class="modal-overlay fixed inset-0 bg-slate-900/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+    <div id="modal-add-stock" class="modal-overlay fixed inset-0 bg-slate-900/50 z-50 flex items-center justify-center p-4">
         <div class="modal-box bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl">
-            <h3 class="font-display font-bold text-xl text-gray-900 mb-4">Réceptionner un Lot Fournisseur</h3>
-            <div class="space-y-4 text-sm">
-                <div>
-                    <label class="block text-xs font-bold text-gray-600 mb-1">Sélectionner l'article récepteur *</label>
-                    <select id="stock-product-select" class="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none bg-white focus:border-medical-500"></select>
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-gray-600 mb-1">Quantités livrées *</label>
-                    <input type="number" id="stock-qty" placeholder="0" min="1" class="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:border-medical-500">
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-gray-600 mb-1">Nouveau Prix d'Achat Unitaire (Optionnel)</label>
-                    <input type="number" id="stock-buy-price" placeholder="Laisser vide si inchangé" class="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:border-medical-500">
-                </div>
-            </div>
-            <div class="flex gap-3 mt-6">
-                <button onclick="closeModal('modal-add-stock')" class="flex-1 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-xl font-medium">Annuler</button>
-                <button onclick="receiveStock()" class="flex-1 px-4 py-2.5 bg-medical-600 text-white rounded-xl font-medium hover:bg-medical-700">Valider l'Entrée</button>
-            </div>
+            <h3 class="font-display font-bold text-xl mb-4">Réception Lot</h3>
+            <select id="stock-product-select" class="w-full px-3 py-2 border rounded-lg mb-4 text-sm"></select>
+            <input type="number" id="stock-qty" placeholder="Quantité reçue *" class="w-full px-3 py-2 border rounded-lg mb-4 text-sm">
+            <div class="flex gap-3"><button onclick="closeModal('modal-add-stock')" class="flex-1 py-2 bg-gray-100 rounded-xl font-bold">Annuler</button><button onclick="receiveStock()" class="flex-1 py-2 bg-medical-600 text-white rounded-xl font-bold">Valider</button></div>
         </div>
     </div>
 
-    <div id="modal-add-client" class="modal-overlay fixed inset-0 bg-slate-900/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+    <div id="modal-add-client" class="modal-overlay fixed inset-0 bg-slate-900/50 z-50 flex items-center justify-center p-4">
         <div class="modal-box bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl">
-            <h3 class="font-display font-bold text-xl text-gray-900 mb-4">Créer un Profil Patient / Assuré CRM</h3>
-            <div class="space-y-4 text-sm">
-                <div>
-                    <label class="block text-xs font-bold text-gray-600 mb-1">Nom Complet du Patient / Raison Sociale Assureur *</label>
-                    <input type="text" id="nc-name" placeholder="Ex: Koffi Kouamé Jean" class="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:border-medical-500">
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-gray-600 mb-1">Téléphone de Contact Mobile *</label>
-                    <input type="text" id="nc-phone" placeholder="Ex: +225 07 01 02 03 04" class="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:border-medical-500">
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-gray-600 mb-1">Adresse de Résidence / Localisation</label>
-                    <input type="text" id="nc-address" placeholder="Ex: Cocody Angré, Abidjan" class="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:border-medical-500">
-                </div>
-            </div>
-            <div class="flex gap-3 mt-6">
-                <button onclick="closeModal('modal-add-client')" class="flex-1 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-xl font-medium">Annuler</button>
-                <button onclick="addClient()" class="flex-1 px-4 py-2.5 bg-medical-600 text-white rounded-xl font-medium hover:bg-medical-700">Enregistrer</button>
-            </div>
+            <h3 class="font-display font-bold text-xl mb-4">Nouveau Patient</h3>
+            <input type="text" id="nc-name" placeholder="Nom *" class="w-full px-3 py-2 border rounded-lg mb-4 text-sm">
+            <input type="text" id="nc-phone" placeholder="Téléphone *" class="w-full px-3 py-2 border rounded-lg mb-4 text-sm">
+            <div class="flex gap-3"><button onclick="closeModal('modal-add-client')" class="flex-1 py-2 bg-gray-100 rounded-xl font-bold">Annuler</button><button onclick="addClient()" class="flex-1 py-2 bg-medical-600 text-white rounded-xl font-bold">Créer</button></div>
         </div>
     </div>
 
-    <div id="toast" class="fixed bottom-6 right-6 z-[200] transform transition-all duration-300 translate-y-20 opacity-0 bg-gray-900 text-white px-5 py-3 rounded-xl shadow-2xl flex items-center gap-3 font-medium text-sm"></div>
+    <div id="toast" class="fixed bottom-6 right-6 z-[200] transform translate-y-20 opacity-0 bg-gray-900 text-white px-5 py-3 rounded-xl shadow-2xl flex items-center gap-3 font-medium text-sm transition-all duration-300"></div>
 
-    <script src="app.js" defer></script>
+    <script src="app.js" type="module"></script>
 </body>
 </html>
