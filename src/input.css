@@ -14,11 +14,20 @@
   --color-medical-900: #1e3a8a;
 }
 
-/* Base (Scrollbar) */
+/* Base (Scrollbar & Suppression des flèches sur les inputs de nombre) */
 @layer base {
   ::-webkit-scrollbar { width: 6px; height: 6px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type="number"] {
+    -moz-appearance: textfield;
+  }
 }
 
 /* Composants (Menu & Modales) */
@@ -31,7 +40,7 @@
   .modal-overlay.open .modal-box { transform: translateY(0); }
 }
 
-/* Impression du Ticket de Caisse */
+/* Impression du Ticket de Caisse Moderne */
 @media print {
   body > *:not(#print-receipt-area) { 
     display: none !important; 

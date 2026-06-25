@@ -9,10 +9,10 @@
 </head>
 <body class="bg-gray-50 text-gray-900 font-sans antialiased overflow-hidden" id="app-body">
 
-    <div id="login-screen" class="fixed inset-0 bg-slate-900 z-[200] flex items-center justify-center p-4 transition-opacity duration-300">
+    <div id="login-screen" style="display: flex;" class="fixed inset-0 bg-slate-900 z-[200] flex items-center justify-center p-4 transition-opacity duration-300">
         <div class="bg-white rounded-2xl p-8 w-full max-w-md shadow-2xl">
             <div class="text-center mb-8">
-                <div class="w-16 h-16 bg-medical-600 rounded-2xl flex items-center justify-center text-white mx-auto mb-4 shadow-lg shadow-medical-600/30">
+                <div class="w-16 h-16 bg-medical-600 rounded-2xl flex items-center justify-center text-white mx-auto mb-4 shadow-lg">
                     <svg viewBox="0 0 24 24" fill="currentColor" class="w-8 h-8"><path d="M19 3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V5a2 2 0 00-2-2zm-7 3a1 1 0 011 1v3h3a1 1 0 010 2h-3v3a1 1 0 01-2 0v-3H8a1 1 0 010-2h3V7a1 1 0 011-1z"/></svg>
                 </div>
                 <h2 class="font-display text-2xl font-bold text-gray-900">Medecineligne ERP</h2>
@@ -35,7 +35,7 @@
         </div>
     </div>
 
-    <div id="main-app" class="opacity-0 pointer-events-none h-screen flex flex-col transition-opacity duration-300">
+    <div id="main-app" style="display: none;" class="h-screen flex flex-col h-full overflow-hidden w-full">
         
         <aside id="sidebar" class="fixed inset-y-0 left-0 z-50 w-64 bg-slate-900 flex flex-col transition-transform duration-300 -translate-x-full lg:translate-x-0">
             <div class="px-5 py-6 border-b border-slate-800">
@@ -74,7 +74,7 @@
 
                 <div class="px-5 pt-4 pb-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">Sécurité & Contrôle</div>
                 <a onclick="navigate('audit')" id="nav-audit" class="nav-item flex items-center gap-3 px-5 py-3 text-slate-400 text-sm font-medium hover:bg-slate-800 hover:text-white cursor-pointer border-l-4 border-transparent">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg> Traçabilité Mouvements
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 00 2 2h12a2 2 0 00 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg> Traçabilité Mouvements
                 </a>
                 <a onclick="navigate('inventaire')" id="nav-inventaire" class="nav-item flex items-center gap-3 px-5 py-3 text-slate-400 text-sm font-medium hover:bg-slate-800 hover:text-white cursor-pointer border-l-4 border-transparent">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg> Audit Inventaire
@@ -100,7 +100,7 @@
         <div id="mob-overlay" onclick="toggleSidebar()" class="fixed inset-0 bg-slate-900/50 z-40 hidden backdrop-blur-sm"></div>
 
         <main class="lg:ml-64 flex-1 flex flex-col h-full overflow-hidden">
-            <header class="h-16 bg-white border-b border-gray-200 px-6 flex items-center justify-between z-30">
+            <header class="h-16 bg-white border-b border-gray-200 px-6 flex items-center justify-between z-30 flex-shrink-0">
                 <div class="flex items-center gap-4">
                     <button onclick="toggleSidebar()" class="lg:hidden text-gray-500 hover:text-gray-700">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
@@ -153,7 +153,7 @@
                         <div class="px-6 py-4 border-b border-gray-200 bg-gray-50/70"><h3 class="font-display font-bold text-gray-800">Derniers Flux de Caisse</h3></div>
                         <div class="overflow-x-auto">
                             <table class="w-full text-left">
-                                <thead><tr class="bg-gray-50 border-b text-xs font-bold text-gray-500 uppercase"><th class="px-6 py-3">N° Facture</th><th class="px-6 py-3">Client</th><th class="px-6 py-3">Paiement</th><th class="px-6 py-3">Montant</th><th class="px-6 py-3">Date</th><th class="px-6 py-3">Action</th></tr></thead>
+                                <thead><tr class="bg-gray-50 border-b text-xs font-bold text-gray-500 uppercase"><th class="px-6 py-3">N° Facture</th><th class="px-6 py-3">Paiement</th><th class="px-6 py-3">Montant</th><th class="px-6 py-3">Date</th><th class="px-6 py-3">Action</th></tr></thead>
                                 <tbody id="recent-sales-body" class="divide-y divide-gray-100 text-sm"></tbody>
                             </table>
                         </div>
@@ -164,12 +164,12 @@
                     <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
                         <h2 class="font-display text-2xl font-bold">Entrepôt central</h2>
                         <div class="flex gap-3">
-                            <button onclick="openModal('modal-add-product')" class="px-4 py-2 border border-gray-300 rounded-xl text-sm font-medium hover:bg-gray-50">Nouveau Produit</button>
-                            <button onclick="openModal('modal-add-stock')" class="px-4 py-2 bg-medical-600 text-white rounded-xl text-sm font-medium hover:bg-medical-700">Réceptionner Lot</button>
+                            <button onclick="openModal('modal-add-product')" class="px-4 py-2 border border-gray-300 rounded-xl text-sm font-medium hover:bg-gray-50 cursor-pointer">Nouveau Produit</button>
+                            <button onclick="openModal('modal-add-stock')" class="px-4 py-2 bg-medical-600 text-white rounded-xl text-sm font-medium hover:bg-medical-700 cursor-pointer">Réceptionner Lot</button>
                         </div>
                     </div>
                     <div class="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
-                        <div class="p-4 border-b bg-gray-50/50"><input type="text" id="search-entrepot" oninput="renderEntrepot()" placeholder="🔍 Chercher..." class="w-full max-w-md px-4 py-2 border rounded-lg text-sm"></div>
+                        <div class="p-4 border-b bg-gray-50/50"><input type="text" id="search-entrepot" oninput="renderEntrepot()" placeholder="🔍 Chercher..." class="w-full max-w-md px-4 py-2 border rounded-lg text-sm outline-none"></div>
                         <div class="overflow-x-auto"><table class="w-full text-left"><tbody id="entrepot-body" class="divide-y text-sm"></tbody></table></div>
                     </div>
                 </div>
@@ -177,7 +177,7 @@
                 <div id="page-officine" class="page hidden space-y-6">
                     <h2 class="font-display text-2xl font-bold">Officine (Rayons)</h2>
                     <div class="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
-                        <div class="p-4 border-b bg-gray-50/50"><input type="text" id="search-officine" oninput="renderOfficine()" placeholder="🔍 Chercher..." class="w-full max-w-md px-4 py-2 border rounded-lg text-sm"></div>
+                        <div class="p-4 border-b bg-gray-50/50"><input type="text" id="search-officine" oninput="renderOfficine()" placeholder="🔍 Chercher..." class="w-full max-w-md px-4 py-2 border rounded-lg text-sm outline-none"></div>
                         <div class="overflow-x-auto"><table class="w-full text-left"><tbody id="officine-body" class="divide-y text-sm"></tbody></table></div>
                     </div>
                 </div>
@@ -186,21 +186,21 @@
                     <div class="grid grid-cols-1 xl:grid-cols-3 gap-6 h-[calc(100vh-140px)] min-h-[600px]">
                         <div class="xl:col-span-2 flex flex-col gap-4">
                             <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4 flex gap-3">
-                                <input type="text" id="search-caisse" oninput="searchProducts()" placeholder="🔍 Scanner ou chercher..." class="flex-1 px-4 py-2 border rounded-lg text-sm">
-                                <select id="filter-category" onchange="searchProducts()" class="px-4 py-2 border rounded-lg text-sm"></select>
+                                <input type="text" id="search-caisse" oninput="searchProducts()" placeholder="🔍 Scanner ou chercher..." class="flex-1 px-4 py-2 border rounded-lg text-sm outline-none">
+                                <select id="filter-category" onchange="searchProducts()" class="px-4 py-2 border rounded-lg text-sm bg-white outline-none font-medium text-gray-700"></select>
                             </div>
                             <div class="flex-1 bg-white rounded-xl border shadow-sm overflow-y-auto p-4"><div id="products-grid" class="grid grid-cols-2 md:grid-cols-3 gap-4"></div></div>
                         </div>
                         <div class="bg-white rounded-xl border flex flex-col overflow-hidden shadow-sm">
                             <div class="p-5 border-b bg-gray-50/50 flex flex-col gap-3">
-                                <div class="flex justify-between items-center"><h3 class="font-bold text-lg">Caisse</h3><button onclick="clearCart()" class="text-xs text-red-600 bg-red-50 px-2 py-1 rounded-lg">Vider</button></div>
-                                <select id="cart-client" class="w-full px-3 py-2 border rounded-lg text-sm"></select>
+                                <div class="flex justify-between items-center"><h3 class="font-bold text-lg">Caisse</h3><button onclick="clearCart()" class="text-xs text-red-600 bg-red-50 px-2 py-1 rounded-lg cursor-pointer">Vider</button></div>
+                                <select id="cart-client" class="w-full px-3 py-2 border rounded-lg text-sm bg-white outline-none"></select>
                             </div>
                             <div id="cart-items" class="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50/40"></div>
                             <div class="p-5 border-t">
                                 <div class="flex justify-between items-center mb-4"><span class="text-base font-bold">Total</span><span id="cart-total" class="text-2xl font-bold text-medical-600 font-display">0 FCFA</span></div>
-                                <select id="payment-mode" class="w-full px-4 py-2.5 border rounded-lg mb-3 text-sm"><option value="especes">Espèces</option><option value="mobile_money">Mobile Money</option><option value="credit">Crédit</option></select>
-                                <button onclick="validateSale()" class="w-full bg-medical-600 text-white font-bold py-3 rounded-xl hover:bg-medical-700">Encaisser & Facturer</button>
+                                <select id="payment-mode" class="w-full px-4 py-2.5 border rounded-lg mb-3 text-sm bg-white outline-none"><option value="especes">Espèces</option><option value="mobile_money">Mobile Money</option><option value="credit">Crédit</option></select>
+                                <button onclick="validateSale()" class="w-full bg-medical-600 text-white font-bold py-3 rounded-xl hover:bg-medical-700 cursor-pointer">Encaisser & Facturer</button>
                             </div>
                         </div>
                     </div>
@@ -208,11 +208,11 @@
 
                 <div id="page-crm" class="page hidden space-y-6">
                     <div id="crm-list-view">
-                        <div class="flex justify-between mb-4"><h2 class="font-display text-2xl font-bold">Clientèle</h2><button onclick="openModal('modal-add-client')" class="px-4 py-2 bg-medical-600 text-white rounded-xl text-sm font-medium shadow-sm">Nouveau Client</button></div>
+                        <div class="flex justify-between mb-4"><h2 class="font-display text-2xl font-bold">Clientèle</h2><button onclick="openModal('modal-add-client')" class="px-4 py-2 bg-medical-600 text-white rounded-xl text-sm font-medium shadow-sm cursor-pointer">Nouveau Client</button></div>
                         <div class="bg-white rounded-xl border shadow-sm overflow-hidden"><table class="w-full text-left"><tbody id="crm-body" class="divide-y text-sm"></tbody></table></div>
                     </div>
                     <div id="crm-detail-view" class="hidden space-y-6">
-                        <div class="flex items-center gap-4"><button onclick="showCRMList()" class="p-2 border rounded-xl hover:bg-gray-50">←</button><h2 id="detail-client-name" class="font-display text-2xl font-bold"></h2></div>
+                        <div class="flex items-center gap-4"><button onclick="showCRMList()" class="p-2 border rounded-xl hover:bg-gray-50 cursor-pointer">←</button><h2 id="detail-client-name" class="font-display text-2xl font-bold"></h2></div>
                         <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
                             <div class="bg-white p-5 rounded-xl border"><p class="text-xs text-gray-400 font-bold uppercase">Total Achats</p><h3 id="detail-total" class="font-display text-2xl font-bold mt-1"></h3></div>
                             <div class="bg-white p-5 rounded-xl border"><p class="text-xs text-gray-400 font-bold uppercase">Factures</p><h3 id="detail-nb" class="font-display text-2xl font-bold mt-1"></h3></div>
@@ -223,7 +223,7 @@
                 </div>
 
                 <div id="page-inventaire" class="page hidden space-y-6">
-                    <div class="flex justify-between items-center"><h2 class="font-display text-2xl font-bold">Rapprochement d'Inventaire</h2><button onclick="appliquerAjustementsGlobaux()" class="px-4 py-2 bg-emerald-600 text-white rounded-xl text-sm font-bold shadow-md">Appliquer Ajustements</button></div>
+                    <div class="flex justify-between items-center"><h2 class="font-display text-2xl font-bold">Rapprochement d'Inventaire</h2><button onclick="appliquerAjustementsGlobaux()" class="px-4 py-2 bg-emerald-600 text-white rounded-xl text-sm font-bold shadow-md cursor-pointer">Appliquer Ajustements</button></div>
                     <div class="bg-white p-4 rounded-xl border flex gap-6 text-sm"><span id="inv-conforme-count" class="font-bold text-green-700">0</span><span id="inv-perte-count" class="font-bold text-red-700">0</span><span id="inv-surplus-count" class="font-bold text-blue-700">0</span></div>
                     <div class="bg-white rounded-xl border shadow-sm overflow-hidden"><table class="w-full text-left"><tbody id="inventaire-body" class="divide-y text-sm"></tbody></table></div>
                 </div>
@@ -236,14 +236,14 @@
         </main>
     </div>
 
-    <div id="print-receipt-area" class="hidden font-mono p-4 text-xs bg-white text-black max-w-sm mx-auto"></div>
+    <div id="print-receipt-area" class="hidden"></div>
 
     <div id="modal-transfer" class="modal-overlay fixed inset-0 bg-slate-900/50 z-50 flex items-center justify-center p-4">
         <div class="modal-box bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl">
             <h3 class="font-display font-bold text-xl mb-4">Transfert vers Officine</h3>
             <p id="transfer-product-name" class="mb-4 text-sm font-bold"></p>
             <input type="number" id="transfer-qty" placeholder="Quantité" class="w-full px-4 py-3 border rounded-xl mb-4 text-lg outline-none focus:border-medical-500">
-            <div class="flex gap-3"><button onclick="closeModal('modal-transfer')" class="flex-1 py-2.5 bg-gray-100 rounded-xl font-bold">Annuler</button><button onclick="executeTransfer()" class="flex-1 py-2.5 bg-medical-600 text-white rounded-xl font-bold">Transférer</button></div>
+            <div class="flex gap-3"><button onclick="closeModal('modal-transfer')" class="flex-1 py-2.5 bg-gray-100 rounded-xl font-bold cursor-pointer">Annuler</button><button onclick="executeTransfer()" class="flex-1 py-2.5 bg-medical-600 text-white rounded-xl font-bold cursor-pointer">Transférer</button></div>
         </div>
     </div>
 
@@ -251,33 +251,33 @@
         <div class="modal-box bg-white rounded-2xl p-6 w-full max-w-lg shadow-2xl">
             <h3 class="font-display font-bold text-xl mb-4">Nouveau Produit</h3>
             <div class="grid grid-cols-2 gap-4 text-sm">
-                <div class="col-span-2"><input type="text" id="np-name" placeholder="Nom du produit *" class="w-full px-3 py-2 border rounded-lg"></div>
-                <div><input type="text" id="np-cat" placeholder="Catégorie" class="w-full px-3 py-2 border rounded-lg"></div>
-                <div><input type="text" id="np-unit" placeholder="Unité (Boîte...)" class="w-full px-3 py-2 border rounded-lg"></div>
-                <div><input type="number" id="np-buy" placeholder="Prix d'achat *" class="w-full px-3 py-2 border rounded-lg"></div>
-                <div><input type="number" id="np-sell" placeholder="Prix de vente *" class="w-full px-3 py-2 border rounded-lg"></div>
-                <div><input type="number" id="np-qty" placeholder="Qté Réserve" class="w-full px-3 py-2 border rounded-lg"></div>
-                <div><input type="number" id="np-alert" placeholder="Seuil alerte" class="w-full px-3 py-2 border rounded-lg"></div>
+                <div class="col-span-2"><input type="text" id="np-name" placeholder="Nom du produit *" class="w-full px-3 py-2 border rounded-lg outline-none"></div>
+                <div><input type="text" id="np-cat" placeholder="Catégorie" class="w-full px-3 py-2 border rounded-lg outline-none"></div>
+                <div><input type="text" id="np-unit" placeholder="Unité (Boîte...)" class="w-full px-3 py-2 border rounded-lg outline-none"></div>
+                <div><input type="number" id="np-buy" placeholder="Prix d'achat *" class="w-full px-3 py-2 border rounded-lg outline-none"></div>
+                <div><input type="number" id="np-sell" placeholder="Prix de vente *" class="w-full px-3 py-2 border rounded-lg outline-none"></div>
+                <div><input type="number" id="np-qty" placeholder="Qté Réserve" class="w-full px-3 py-2 border rounded-lg outline-none"></div>
+                <div><input type="number" id="np-alert" placeholder="Seuil alerte" class="w-full px-3 py-2 border rounded-lg outline-none"></div>
             </div>
-            <div class="flex gap-3 mt-6"><button onclick="closeModal('modal-add-product')" class="flex-1 py-2.5 bg-gray-100 rounded-xl font-bold">Annuler</button><button onclick="addProduct()" class="flex-1 py-2.5 bg-medical-600 text-white rounded-xl font-bold">Sauvegarder</button></div>
+            <div class="flex gap-3 mt-6"><button onclick="closeModal('modal-add-product')" class="flex-1 py-2.5 bg-gray-100 rounded-xl font-bold cursor-pointer">Annuler</button><button onclick="addProduct()" class="flex-1 py-2.5 bg-medical-600 text-white rounded-xl font-bold cursor-pointer">Sauvegarder</button></div>
         </div>
     </div>
 
     <div id="modal-add-stock" class="modal-overlay fixed inset-0 bg-slate-900/50 z-50 flex items-center justify-center p-4">
         <div class="modal-box bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl">
             <h3 class="font-display font-bold text-xl mb-4">Réception Lot</h3>
-            <select id="stock-product-select" class="w-full px-3 py-2 border rounded-lg mb-4 text-sm"></select>
-            <input type="number" id="stock-qty" placeholder="Quantité reçue *" class="w-full px-3 py-2 border rounded-lg mb-4 text-sm">
-            <div class="flex gap-3"><button onclick="closeModal('modal-add-stock')" class="flex-1 py-2 bg-gray-100 rounded-xl font-bold">Annuler</button><button onclick="receiveStock()" class="flex-1 py-2 bg-medical-600 text-white rounded-xl font-bold">Valider</button></div>
+            <select id="stock-product-select" class="w-full px-3 py-2 border rounded-lg mb-4 text-sm bg-white outline-none"></select>
+            <input type="number" id="stock-qty" placeholder="Quantité reçue *" class="w-full px-3 py-2 border rounded-lg mb-4 text-sm outline-none">
+            <div class="flex gap-3"><button onclick="closeModal('modal-add-stock')" class="flex-1 py-2 bg-gray-100 rounded-xl font-bold cursor-pointer">Annuler</button><button onclick="receiveStock()" class="flex-1 py-2 bg-medical-600 text-white rounded-xl font-bold cursor-pointer">Valider</button></div>
         </div>
     </div>
 
     <div id="modal-add-client" class="modal-overlay fixed inset-0 bg-slate-900/50 z-50 flex items-center justify-center p-4">
         <div class="modal-box bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl">
             <h3 class="font-display font-bold text-xl mb-4">Nouveau Patient</h3>
-            <input type="text" id="nc-name" placeholder="Nom *" class="w-full px-3 py-2 border rounded-lg mb-4 text-sm">
-            <input type="text" id="nc-phone" placeholder="Téléphone *" class="w-full px-3 py-2 border rounded-lg mb-4 text-sm">
-            <div class="flex gap-3"><button onclick="closeModal('modal-add-client')" class="flex-1 py-2 bg-gray-100 rounded-xl font-bold">Annuler</button><button onclick="addClient()" class="flex-1 py-2 bg-medical-600 text-white rounded-xl font-bold">Créer</button></div>
+            <input type="text" id="nc-name" placeholder="Nom *" class="w-full px-3 py-2 border rounded-lg mb-4 text-sm outline-none">
+            <input type="text" id="nc-phone" placeholder="Téléphone *" class="w-full px-3 py-2 border rounded-lg mb-4 text-sm outline-none">
+            <div class="flex gap-3"><button onclick="closeModal('modal-add-client')" class="flex-1 py-2 bg-gray-100 rounded-xl font-bold cursor-pointer">Annuler</button><button onclick="addClient()" class="flex-1 py-2 bg-medical-600 text-white rounded-xl font-bold cursor-pointer">Créer</button></div>
         </div>
     </div>
 
