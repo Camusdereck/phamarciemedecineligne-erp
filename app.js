@@ -391,14 +391,31 @@ function updateCartUI() {
     const total = state.cart.reduce((s, i) => s + i.qty * i.price, 0);
     const cartItemsEl = document.getElementById('cart-items');
     cartItemsEl.innerHTML = state.cart.map(c => `
-        <div class="flex justify-between items-center bg-white border p-3 rounded-xl shadow-sm text-sm">
-            <div class="font-bold flex-1 truncate mr-2">${escapeHtml(c.name)} <span class="text-medical-600 font-semibold">(x${c.qty})</span></div>
+        <div class="flex justify-between items-center bg-white border p-3 rounded-xl shadow-sm text-sm gap-2">
+            <div class="font-bold flex-1 truncate">${escapeHtml(c.name)}</div>
+            <input type="number" min="1" value="${c.qty}" data-id="${c.productId}" class="cart-qty-input w-16 border rounded-lg px-2 py-1 text-center font-semibold outline-none">
             <button data-id="${c.productId}" class="btn-remove-cart text-red-500 font-bold text-xl cursor-pointer hover:text-red-700 px-1">×</button>
         </div>
     `).join('');
     cartItemsEl.querySelectorAll('.btn-remove-cart').forEach(btn => btn.onclick = () => removeFromCart(btn.dataset.id));
+    cartItemsEl.querySelectorAll('.cart-qty-input').forEach(input => {
+        input.onchange = () => setCartQty(input.dataset.id, input.value);
+    });
     document.getElementById('cart-total').textContent = fmtMoney(total);
     saveLocalCart();
+}
+
+function setCartQty(productId, rawValue) {
+    const p = state.products.find(x => x.id === productId);
+    let qty = parseInt(rawValue) || 0;
+    if (qty <= 0) { removeFromCart(productId); return; }
+    if (qty > p.qtyOfficine) {
+        showToast(`Stock insuffisant — max ${p.qtyOfficine}`, "error");
+        qty = p.qtyOfficine;
+    }
+    const item = state.cart.find(c => c.productId === productId);
+    if (item) item.qty = qty;
+    updateCartUI();
 }
 
 async function validateSale() {
@@ -703,6 +720,7 @@ window.payClientDebt = payClientDebt;
 window.handleLogout = handleLogout;
 window.renderInventaire = renderInventaire;
 window.updatePhysicalCount = updatePhysicalCount;
+window.setCartQty = setCartQty;
 
 // ==================== 15. INITIATIONS ET LISTENERS ====================
 document.addEventListener('DOMContentLoaded', () => {
