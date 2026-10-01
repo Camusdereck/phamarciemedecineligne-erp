@@ -92,6 +92,52 @@ function escapeHtml(str) {
         .replace(/'/g, '&#39;');
 }
 
+// ==================== 5bis. RÔLES ====================
+// Pages accessibles par rôle (contrôle d'interface). La vraie sécurité est
+// côté Supabase (RLS + vérifications dans les fonctions RPC) — ceci ne fait
+// qu'adapter ce que chacun VOIT, pour une interface cohérente avec son métier.
+const ROLE_PAGES = {
+    titulaire: ['dashboard', 'entrepot', 'officine', 'caisse', 'crm', 'audit', 'inventaire', 'comptes'],
+    adjoint: ['dashboard', 'entrepot', 'officine', 'caisse', 'crm', 'audit', 'inventaire'],
+    vendeur: ['caisse', 'crm'],
+    magasinier: ['entrepot', 'officine', 'inventaire'],
+    comptable: ['dashboard', 'crm', 'audit']
+};
+const ROLE_DEFAULT_PAGE = {
+    titulaire: 'dashboard', adjoint: 'dashboard', comptable: 'dashboard',
+    vendeur: 'caisse', magasinier: 'entrepot'
+};
+
+function getAllowedPages() {
+    const role = state.userProfile?.role;
+    return ROLE_PAGES[role] || [];
+}
+
+function applyRoleRestrictions() {
+    const allowed = getAllowedPages();
+    document.querySelectorAll('.nav-item').forEach(a => {
+        const page = a.id.replace('nav-', '');
+        a.style.display = allowed.includes(page) ? '' : 'none';
+    });
+
+    // Bouton "Nouveau Client" : le Comptable est en lecture seule sur le CRM
+    const btnAddClient = document.getElementById('btn-open-add-client');
+    if (btnAddClient) btnAddClient.style.display = (state.userProfile?.role === 'comptable') ? 'none' : '';
+
+    // Vente à crédit : réservée à Titulaire/Adjoint
+    const paymentMode = document.getElementById('payment-mode');
+    if (paymentMode) {
+        const creditOption = paymentMode.querySelector('option[value="credit"]');
+        if (creditOption) creditOption.style.display = ['titulaire', 'adjoint'].includes(state.userProfile?.role) ? '' : 'none';
+    }
+
+    // Validation des ajustements d'inventaire : pas pour le Magasinier (peut compter, pas valider)
+    ['btn-adjust-inventaire', 'btn-adjust-officine', 'btn-adjust-entrepot'].forEach(id => {
+        const btn = document.getElementById(id);
+        if (btn) btn.style.display = (state.userProfile?.role === 'magasinier') ? 'none' : '';
+    });
+}
+
 // ==================== 6. BASE DE DONNÉES ====================
 async function loadDatabase() {
     try {
@@ -105,10 +151,16 @@ async function loadDatabase() {
             document.getElementById('user-name').textContent = displayName;
             document.getElementById('user-avatar').textContent = displayName.charAt(0).toUpperCase();
             document.getElementById('user-role').textContent = state.userProfile?.role || 'Personnel';
+
+            if (!state.userProfile) {
+                showToast("⚠️ Aucun profil associé à ce compte. Contacte le Titulaire.", "error");
+            }
         }
 
+        // products_view masque le prix d'achat pour les rôles Vendeur/Magasinier
+        // directement au niveau de la base — impossible à contourner depuis le navigateur.
         const [prodReq, cliReq, salesReq, auditReq, invReq] = await Promise.all([
-            supabase.from('products').select('*'),
+            supabase.from('products_view').select('*'),
             supabase.from('clients').select('*'),
             supabase.from('sales').select('*').order('created_at', { ascending: false }),
             supabase.from('stock_movements').select('*').order('created_at', { ascending: false }).limit(100),
@@ -139,11 +191,22 @@ async function loadDatabase() {
         const localCart = localStorage.getItem('medecineligne_cart');
         if(localCart) state.cart = JSON.parse(localCart);
 
+        applyRoleRestrictions();
+
+        // Si la page actuellement affichée n'est pas autorisée pour ce rôle
+        // (ex: Vendeur arrivant sur le Dashboard par défaut), on redirige.
+        const currentPageEl = document.querySelector('.page.block');
+        const currentPage = currentPageEl ? currentPageEl.id.replace('page-', '') : 'dashboard';
+        if (state.userProfile && !getAllowedPages().includes(currentPage)) {
+            navigate(ROLE_DEFAULT_PAGE[state.userProfile.role] || 'dashboard');
+        }
+
         renderDashboard();
         if(!document.getElementById('page-audit').classList.contains('hidden')) renderAudit();
         if(!document.getElementById('page-caisse').classList.contains('hidden')) renderCaisse();
         if(!document.getElementById('page-crm').classList.contains('hidden')) renderCRM();
         if(!document.getElementById('page-inventaire').classList.contains('hidden')) renderInventaire();
+        if(document.getElementById('page-comptes') && !document.getElementById('page-comptes').classList.contains('hidden')) renderComptes();
         
     } catch (err) {
         showToast("Erreur de synchronisation: " + (err.message || ''), "error");
@@ -167,6 +230,12 @@ function showToast(msg, type='success') {
 
 // ==================== 8. ROUTAGE ====================
 function navigate(page) {
+    const allowed = getAllowedPages();
+    if (allowed.length && !allowed.includes(page)) {
+        showToast("Accès non autorisé pour votre rôle", "error");
+        page = ROLE_DEFAULT_PAGE[state.userProfile?.role] || 'dashboard';
+    }
+
     document.querySelectorAll('.page').forEach(p => { p.classList.add('hidden'); p.classList.remove('block'); });
     document.querySelectorAll('.nav-item').forEach(a => a.classList.remove('active'));
     const targetPage = document.getElementById('page-' + page);
@@ -183,6 +252,7 @@ function navigate(page) {
     if(page === 'crm') showCRMList();
     if(page === 'audit') renderAudit();
     if(page === 'inventaire') renderInventaire();
+    if(page === 'comptes') renderComptes();
 }
 
 function toggleSidebar() {
@@ -352,6 +422,7 @@ function renderCaisse() {
 
     searchProducts(); 
     updateCartUI(); 
+    applyRoleRestrictions();
 }
 
 function searchProducts() {
@@ -438,6 +509,8 @@ async function validateSale() {
         // Appel atomique côté base : décrémente le stock, journalise, enregistre
         // la vente ET le détail des articles en une seule transaction. Si le stock
         // manque pour un article, tout est annulé (rien n'est à moitié enregistré).
+        // La vérification du droit à la vente à crédit (Titulaire/Adjoint) se fait
+        // aussi côté base, à l'intérieur de process_sale.
         const { error } = await supabase.rpc('process_sale', {
             p_sale_id: invId,
             p_items: items,
@@ -543,6 +616,9 @@ function renderCRM() {
         return;
     }
     
+    const role = state.userProfile?.role;
+    const canRecover = ['titulaire', 'adjoint', 'comptable'].includes(role);
+
     body.innerHTML = state.clients.map(c => {
         const debt = Number(c.debt) || 0;
         return `
@@ -552,7 +628,7 @@ function renderCRM() {
                 <td class="px-6 py-4"><span class="px-2.5 py-0.5 rounded text-xs font-bold ${debt > 0 ? 'bg-red-100 text-red-700':'bg-green-100 text-green-700'}">${debt > 0 ? fmtMoney(debt) : 'Soldé'}</span></td>
                 <td class="px-6 py-4 text-right">
                     <button data-id="${c.id}" class="btn-detail-client text-slate-600 border border-gray-200 px-2.5 py-1 rounded-lg cursor-pointer text-xs font-semibold mr-2 hover:bg-gray-50">Dossier</button>
-                    ${debt > 0 ? `<button data-id="${c.id}" data-debt="${debt}" class="btn-pay-debt bg-green-600 text-white px-2.5 py-1 rounded-lg cursor-pointer text-xs font-bold hover:bg-green-700">Recouvrer</button>`:''}
+                    ${debt > 0 && canRecover ? `<button data-id="${c.id}" data-debt="${debt}" class="btn-pay-debt bg-green-600 text-white px-2.5 py-1 rounded-lg cursor-pointer text-xs font-bold hover:bg-green-700">Recouvrer</button>`:''}
                 </td>
             </tr>
         `;
@@ -560,6 +636,8 @@ function renderCRM() {
 
     body.querySelectorAll('.btn-detail-client').forEach(btn => btn.onclick = () => showClientDetail(btn.dataset.id));
     body.querySelectorAll('.btn-pay-debt').forEach(btn => btn.onclick = () => payClientDebt(btn.dataset.id, Number(btn.dataset.debt)));
+
+    applyRoleRestrictions();
 }
 
 function showClientDetail(clientId) {
@@ -668,6 +746,7 @@ function renderInventaire() {
     if (document.getElementById('inventaire-body-entrepot')) renderInventaireZone('entrepot', 'inventaire-body-entrepot');
     // Compat rétro si l'ancien tbody unique existe encore (officine uniquement)
     if (document.getElementById('inventaire-body')) renderInventaireZone('officine', 'inventaire-body');
+    applyRoleRestrictions();
 }
 
 async function appliquerAjustementsGlobaux(zone) {
@@ -695,7 +774,73 @@ async function appliquerAjustementsGlobaux(zone) {
     await loadDatabase();
 }
 
-// ==================== 14. EXPOSITION GLOBALE (SCOPE MODULE) ====================
+// ==================== 14. COMPTES (Titulaire uniquement) ====================
+const ROLE_LABELS = {
+    titulaire: 'Titulaire', adjoint: 'Adjoint', vendeur: 'Vendeur / Caissier',
+    magasinier: 'Magasinier', comptable: 'Comptable'
+};
+
+function renderComptes() {
+    const body = document.getElementById('comptes-body');
+    if (!body) return;
+
+    if (state.userProfile?.role !== 'titulaire') {
+        body.innerHTML = `<tr><td colspan="3" class="px-6 py-8 text-center text-gray-400">Accès réservé au Titulaire</td></tr>`;
+        return;
+    }
+
+    body.innerHTML = state.profiles.map(p => `
+        <tr class="hover:bg-gray-50/50">
+            <td class="px-6 py-4 font-bold text-gray-900">${escapeHtml(p.full_name || '(sans nom)')}${p.id === state.currentUser.id ? ' <span class="text-xs text-gray-400">(vous)</span>' : ''}</td>
+            <td class="px-6 py-4">
+                <select data-id="${p.id}" class="role-select border rounded-lg px-2 py-1 text-sm bg-white outline-none">
+                    ${Object.keys(ROLE_LABELS).map(r => `<option value="${r}" ${p.role === r ? 'selected' : ''}>${ROLE_LABELS[r]}</option>`).join('')}
+                </select>
+            </td>
+            <td class="px-6 py-4 text-right">
+                <button data-id="${p.id}" class="btn-save-role bg-medical-600 text-white px-3 py-1.5 rounded-lg cursor-pointer text-xs font-bold hover:bg-medical-700">Enregistrer</button>
+            </td>
+        </tr>
+    `).join('');
+
+    body.querySelectorAll('.btn-save-role').forEach(btn => {
+        btn.onclick = () => {
+            const select = body.querySelector(`.role-select[data-id="${btn.dataset.id}"]`);
+            updateAccountRole(btn.dataset.id, select.value);
+        };
+    });
+}
+
+async function updateAccountRole(profileId, newRole) {
+    if (profileId === state.currentUser.id && newRole !== 'titulaire') {
+        if (!confirm("Vous êtes sur le point de retirer votre propre accès Titulaire. Continuer ?")) return;
+    }
+    const { error } = await supabase.from('profiles').update({ role: newRole }).eq('id', profileId);
+    if (error) return showToast("Erreur: " + error.message, "error");
+    showToast("✅ Rôle mis à jour");
+    await loadDatabase();
+    renderComptes();
+}
+
+async function createAccountProfile() {
+    const uuid = document.getElementById('na-uuid').value.trim();
+    const fullName = document.getElementById('na-name').value.trim();
+    const role = document.getElementById('na-role').value;
+
+    if (!uuid || !fullName) return showToast("UUID et nom obligatoires", "error");
+
+    const { error } = await supabase.from('profiles').insert([{ id: uuid, full_name: fullName, role }]);
+    if (error) return showToast("Erreur: " + error.message, "error");
+
+    closeModal('modal-add-account');
+    showToast("✅ Compte créé");
+    document.getElementById('na-uuid').value = '';
+    document.getElementById('na-name').value = '';
+    await loadDatabase();
+    renderComptes();
+}
+
+// ==================== 15. EXPOSITION GLOBALE (SCOPE MODULE) ====================
 window.navigate = navigate; 
 window.toggleSidebar = toggleSidebar; 
 window.openModal = openModal; 
@@ -721,8 +866,11 @@ window.handleLogout = handleLogout;
 window.renderInventaire = renderInventaire;
 window.updatePhysicalCount = updatePhysicalCount;
 window.setCartQty = setCartQty;
+window.renderComptes = renderComptes;
+window.updateAccountRole = updateAccountRole;
+window.createAccountProfile = createAccountProfile;
 
-// ==================== 15. INITIATIONS ET LISTENERS ====================
+// ==================== 16. INITIATIONS ET LISTENERS ====================
 document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('login-form')?.addEventListener('submit', handleLogin);
     
