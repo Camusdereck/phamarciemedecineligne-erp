@@ -31,7 +31,7 @@
                     Déverrouiller le système
                 </button>
             </form>
-            <div class="mt-6 text-center text-xs text-gray-400 font-medium">Camus Dereck © 2026</div>
+            <div class="mt-6 text-center text-xs text-gray-400 font-medium">EMSTE © <span class="js-year"></span></div>
         </div>
     </div>
 
@@ -167,13 +167,13 @@
                     <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
                         <h2 class="font-display text-2xl font-bold">Entrepôt central</h2>
                         <div class="flex gap-3">
-                            <button onclick="openModal('modal-add-product')" class="px-4 py-2 border border-gray-300 rounded-xl text-sm font-medium hover:bg-gray-50 cursor-pointer">Nouveau Produit</button>
-                            <button onclick="openModal('modal-add-stock')" class="px-4 py-2 bg-medical-600 text-white rounded-xl text-sm font-medium hover:bg-medical-700 cursor-pointer">Réceptionner Lot</button>
+                            <button id="btn-new-product" onclick="openModal('modal-add-product')" class="px-4 py-2 border border-gray-300 rounded-xl text-sm font-medium hover:bg-gray-50 cursor-pointer">Nouveau Produit</button>
+                            <button id="btn-receive-stock" onclick="openModal('modal-add-stock')" class="px-4 py-2 bg-medical-600 text-white rounded-xl text-sm font-medium hover:bg-medical-700 cursor-pointer">Réceptionner Lot</button>
                         </div>
                     </div>
                     <div class="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
                         <div class="p-4 border-b bg-gray-50/50"><input type="text" id="search-entrepot" oninput="renderEntrepot()" placeholder="🔍 Chercher..." class="w-full max-w-md px-4 py-2 border rounded-lg text-sm outline-none"></div>
-                        <div class="overflow-x-auto"><table class="w-full text-left"><tbody id="entrepot-body" class="divide-y text-sm"></tbody></table></div>
+                        <div class="overflow-x-auto"><table class="w-full text-left"><thead><tr class="bg-gray-50 border-b text-xs font-bold text-gray-500 uppercase"><th class="px-6 py-3">Produit</th><th class="px-6 py-3">Quantité en réserve</th><th class="px-6 py-3 text-right">Action</th></tr></thead><tbody id="entrepot-body" class="divide-y text-sm"></tbody></table></div>
                     </div>
                 </div>
 
@@ -181,7 +181,7 @@
                     <h2 class="font-display text-2xl font-bold">Officine (Rayons)</h2>
                     <div class="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
                         <div class="p-4 border-b bg-gray-50/50"><input type="text" id="search-officine" oninput="renderOfficine()" placeholder="🔍 Chercher..." class="w-full max-w-md px-4 py-2 border rounded-lg text-sm outline-none"></div>
-                        <div class="overflow-x-auto"><table class="w-full text-left"><tbody id="officine-body" class="divide-y text-sm"></tbody></table></div>
+                        <div class="overflow-x-auto"><table class="w-full text-left"><thead><tr class="bg-gray-50 border-b text-xs font-bold text-gray-500 uppercase"><th class="px-6 py-3">Produit</th><th class="px-6 py-3">Quantité en rayon</th><th class="px-6 py-3">Prix de vente</th></tr></thead><tbody id="officine-body" class="divide-y text-sm"></tbody></table></div>
                     </div>
                 </div>
 
@@ -211,11 +211,20 @@
 
                 <div id="page-crm" class="page hidden space-y-6">
                     <div id="crm-list-view">
-                        <div class="flex justify-between mb-4"><h2 class="font-display text-2xl font-bold">Clientèle</h2><button id="btn-open-add-client" onclick="openModal('modal-add-client')" class="px-4 py-2 bg-medical-600 text-white rounded-xl text-sm font-medium shadow-sm cursor-pointer">Nouveau Client</button></div>
-                        <div class="bg-white rounded-xl border shadow-sm overflow-hidden"><table class="w-full text-left"><tbody id="crm-body" class="divide-y text-sm"></tbody></table></div>
+                        <div class="flex flex-wrap justify-between items-center gap-3 mb-4"><h2 class="font-display text-2xl font-bold">Clientèle</h2>
+                            <div class="flex flex-wrap gap-2">
+                                <button onclick="exportClientsExcel()" class="px-3 py-2 bg-white border rounded-xl text-sm font-medium cursor-pointer hover:bg-gray-50">Export Excel</button>
+                                <button onclick="exportClientsPDF()" class="px-3 py-2 bg-white border rounded-xl text-sm font-medium cursor-pointer hover:bg-gray-50">Export PDF</button>
+                                <button id="btn-import-clients" onclick="document.getElementById('import-clients-file').click()" class="px-3 py-2 bg-white border rounded-xl text-sm font-medium cursor-pointer hover:bg-gray-50">Import Excel</button>
+                                <input type="file" id="import-clients-file" accept=".xlsx,.xls,.csv" class="hidden">
+                                <button id="btn-open-add-client" onclick="openClientModal()" class="px-4 py-2 bg-medical-600 text-white rounded-xl text-sm font-medium shadow-sm cursor-pointer">Nouveau Client</button>
+                            </div>
+                        </div>
+                        <p class="text-xs text-gray-400 mb-2">Import Excel : colonnes <b>Nom</b>, <b>Téléphone</b>, <b>Email</b>, <b>WhatsApp</b> (1re ligne = en-têtes).</p>
+                        <div class="bg-white rounded-xl border shadow-sm overflow-x-auto"><table class="w-full text-left"><thead><tr class="bg-gray-50 border-b text-xs font-bold text-gray-500 uppercase"><th class="px-6 py-3">Nom</th><th class="px-6 py-3">Téléphone</th><th class="px-6 py-3">Email</th><th class="px-6 py-3">WhatsApp</th><th class="px-6 py-3">Dette</th><th class="px-6 py-3 text-right">Actions</th></tr></thead><tbody id="crm-body" class="divide-y text-sm"></tbody></table></div>
                     </div>
                     <div id="crm-detail-view" class="hidden space-y-6">
-                        <div class="flex items-center gap-4"><button onclick="showCRMList()" class="p-2 border rounded-xl hover:bg-gray-50 cursor-pointer">←</button><h2 id="detail-client-name" class="font-display text-2xl font-bold"></h2></div>
+                        <div class="flex items-center gap-4"><button onclick="showCRMList()" class="p-2 border rounded-xl hover:bg-gray-50 cursor-pointer">←</button><div><h2 id="detail-client-name" class="font-display text-2xl font-bold"></h2><p id="detail-client-contact" class="text-xs text-gray-500 mt-1"></p></div></div>
                         <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
                             <div class="bg-white p-5 rounded-xl border"><p class="text-xs text-gray-400 font-bold uppercase">Total Achats</p><h3 id="detail-total" class="font-display text-2xl font-bold mt-1"></h3></div>
                             <div class="bg-white p-5 rounded-xl border"><p class="text-xs text-gray-400 font-bold uppercase">Factures</p><h3 id="detail-nb" class="font-display text-2xl font-bold mt-1"></h3></div>
@@ -225,15 +234,31 @@
                     </div>
                 </div>
 
-                <div id="page-inventaire" class="page hidden space-y-6">
-                    <div class="flex justify-between items-center"><h2 class="font-display text-2xl font-bold">Rapprochement d'Inventaire</h2><button id="btn-adjust-inventaire" onclick="appliquerAjustementsGlobaux()" class="px-4 py-2 bg-emerald-600 text-white rounded-xl text-sm font-bold shadow-md cursor-pointer">Appliquer Ajustements</button></div>
-                    <div class="bg-white p-4 rounded-xl border flex gap-6 text-sm"><span id="inv-conforme-count" class="font-bold text-green-700">0</span><span id="inv-perte-count" class="font-bold text-red-700">0</span><span id="inv-surplus-count" class="font-bold text-blue-700">0</span></div>
-                    <div class="bg-white rounded-xl border shadow-sm overflow-hidden"><table class="w-full text-left"><tbody id="inventaire-body" class="divide-y text-sm"></tbody></table></div>
+                <div id="page-inventaire" class="page hidden space-y-8">
+                    <h2 class="font-display text-2xl font-bold">Rapprochement d'Inventaire</h2>
+                    <div id="inv-section-officine"><div class="space-y-3">
+                        <div class="flex flex-wrap justify-between items-center gap-3"><h3 class="font-display text-xl font-bold">Officine</h3>
+                            <div class="flex flex-wrap gap-2 items-center"><span id="inv-resume-officine" class="text-xs font-bold text-gray-500"></span>
+                                <button onclick="exportEcartsExcel('officine')" class="px-3 py-2 bg-white border rounded-xl text-xs font-medium cursor-pointer hover:bg-gray-50">Écarts Excel</button>
+                                <button onclick="exportEcartsPDF('officine')" class="px-3 py-2 bg-white border rounded-xl text-xs font-medium cursor-pointer hover:bg-gray-50">Écarts PDF</button>
+                                <button id="btn-adjust-officine" onclick="appliquerAjustementsGlobaux('officine')" class="px-3 py-2 bg-emerald-600 text-white rounded-xl text-xs font-bold shadow-md cursor-pointer">Appliquer tous les ajustements</button>
+                            </div></div>
+                        <div class="bg-white rounded-xl border shadow-sm overflow-x-auto"><table class="w-full text-left"><thead><tr class="bg-gray-50 border-b text-xs font-bold text-gray-500 uppercase"><th class="px-6 py-3">Produit</th><th class="px-6 py-3">Stock logique (logiciel)</th><th class="px-6 py-3">Stock physique (comptage)</th><th class="px-6 py-3">Écart (physique − logique)</th><th class="px-6 py-3 text-right">Action</th></tr></thead><tbody id="inventaire-body-officine" class="divide-y text-sm"></tbody></table></div>
+                    </div></div>
+                    <div id="inv-section-entrepot"><div class="space-y-3">
+                        <div class="flex flex-wrap justify-between items-center gap-3"><h3 class="font-display text-xl font-bold">Entrepôt</h3>
+                            <div class="flex flex-wrap gap-2 items-center"><span id="inv-resume-entrepot" class="text-xs font-bold text-gray-500"></span>
+                                <button onclick="exportEcartsExcel('entrepot')" class="px-3 py-2 bg-white border rounded-xl text-xs font-medium cursor-pointer hover:bg-gray-50">Écarts Excel</button>
+                                <button onclick="exportEcartsPDF('entrepot')" class="px-3 py-2 bg-white border rounded-xl text-xs font-medium cursor-pointer hover:bg-gray-50">Écarts PDF</button>
+                                <button id="btn-adjust-entrepot" onclick="appliquerAjustementsGlobaux('entrepot')" class="px-3 py-2 bg-emerald-600 text-white rounded-xl text-xs font-bold shadow-md cursor-pointer">Appliquer tous les ajustements</button>
+                            </div></div>
+                        <div class="bg-white rounded-xl border shadow-sm overflow-x-auto"><table class="w-full text-left"><thead><tr class="bg-gray-50 border-b text-xs font-bold text-gray-500 uppercase"><th class="px-6 py-3">Produit</th><th class="px-6 py-3">Stock logique (logiciel)</th><th class="px-6 py-3">Stock physique (comptage)</th><th class="px-6 py-3">Écart (physique − logique)</th><th class="px-6 py-3 text-right">Action</th></tr></thead><tbody id="inventaire-body-entrepot" class="divide-y text-sm"></tbody></table></div>
+                    </div></div>
                 </div>
 
                 <div id="page-audit" class="page hidden space-y-6">
                     <h2 class="font-display text-2xl font-bold">Traçabilité Mouvements</h2>
-                    <div class="bg-white rounded-xl border shadow-sm overflow-hidden"><table class="w-full text-left"><tbody id="audit-body" class="divide-y text-sm"></tbody></table></div>
+                    <div class="bg-white rounded-xl border shadow-sm overflow-hidden"><table class="w-full text-left"><thead><tr class="bg-gray-50 border-b text-xs font-bold text-gray-500 uppercase"><th class="px-6 py-3">Date</th><th class="px-6 py-3">Utilisateur</th><th class="px-6 py-3">Nature du mouvement</th><th class="px-6 py-3">Produit</th><th class="px-6 py-3">Quantité</th></tr></thead><tbody id="audit-body" class="divide-y text-sm"></tbody></table></div>
                 </div>
 
                 <div id="page-comptes" class="page hidden space-y-6">
@@ -293,9 +318,12 @@
 
     <div id="modal-add-client" class="modal-overlay fixed inset-0 bg-slate-900/50 z-50 flex items-center justify-center p-4">
         <div class="modal-box bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl">
-            <h3 class="font-display font-bold text-xl mb-4">Nouveau Patient</h3>
+            <h3 id="client-modal-title" class="font-display font-bold text-xl mb-4">Nouveau Patient</h3>
+            <input type="hidden" id="nc-id">
             <input type="text" id="nc-name" placeholder="Nom *" class="w-full px-3 py-2 border rounded-lg mb-4 text-sm outline-none">
             <input type="text" id="nc-phone" placeholder="Téléphone *" class="w-full px-3 py-2 border rounded-lg mb-4 text-sm outline-none">
+            <input type="email" id="nc-email" placeholder="Email" class="w-full px-3 py-2 border rounded-lg mb-4 text-sm outline-none">
+            <input type="text" id="nc-whatsapp" placeholder="WhatsApp (ex : +225 07 00 00 00 00)" class="w-full px-3 py-2 border rounded-lg mb-4 text-sm outline-none">
             <div class="flex gap-3"><button onclick="closeModal('modal-add-client')" class="flex-1 py-2 bg-gray-100 rounded-xl font-bold cursor-pointer">Annuler</button><button onclick="addClient()" class="flex-1 py-2 bg-medical-600 text-white rounded-xl font-bold cursor-pointer">Créer</button></div>
         </div>
     </div>
@@ -306,11 +334,10 @@
             <input type="text" id="na-uuid" placeholder="UUID Supabase de l'utilisateur *" class="w-full px-3 py-2 border rounded-lg mb-4 text-sm outline-none font-mono">
             <input type="text" id="na-name" placeholder="Nom complet *" class="w-full px-3 py-2 border rounded-lg mb-4 text-sm outline-none">
             <select id="na-role" class="w-full px-3 py-2 border rounded-lg mb-4 text-sm bg-white outline-none">
-                <option value="titulaire">Titulaire</option>
-                <option value="adjoint">Adjoint</option>
-                <option value="vendeur" selected>Vendeur / Caissier</option>
-                <option value="magasinier">Magasinier</option>
-                <option value="comptable">Comptable</option>
+                <option value="admin">Administrateur principal</option>
+                <option value="gest_entrepot">Gestionnaire Entrepôt</option>
+                <option value="gest_officine" selected>Gestionnaire Officine</option>
+                <option value="auditeur">Auditeur / Inventaire</option>
             </select>
             <div class="flex gap-3"><button onclick="closeModal('modal-add-account')" class="flex-1 py-2 bg-gray-100 rounded-xl font-bold cursor-pointer">Annuler</button><button onclick="createAccountProfile()" class="flex-1 py-2 bg-medical-600 text-white rounded-xl font-bold cursor-pointer">Créer</button></div>
         </div>

@@ -24,6 +24,9 @@ let state = {
 // depuis le HTML (attributs oninput/onclick). Toute interaction passe par des
 // fonctions dédiées exposées explicitement en bas du fichier.
 
+// Année du pied de page : toujours l'année en cours
+document.querySelectorAll('.js-year').forEach(el => el.textContent = new Date().getFullYear());
+
 // ==================== 3. AUTHENTIFICATION ====================
 supabase.auth.onAuthStateChange((event, session) => {
     if (session) {
@@ -98,7 +101,7 @@ function escapeHtml(str) {
 // qu'adapter ce que chacun VOIT, pour une interface cohérente avec son métier.
 const ROLE_PAGES = {
     admin: ['dashboard', 'entrepot', 'officine', 'caisse', 'crm', 'audit', 'inventaire', 'comptes'],
-    gest_entrepot: ['entrepot', 'audit'],
+    gest_entrepot: ['entrepot', 'audit', 'inventaire'],
     gest_officine: ['officine', 'caisse', 'crm', 'audit', 'inventaire'],
     auditeur: ['dashboard', 'entrepot', 'officine', 'crm', 'audit', 'inventaire']
 };
@@ -139,8 +142,18 @@ function applyRoleRestrictions() {
         if (btn) btn.style.display = roleIs('admin', 'gest_entrepot') ? '' : 'none';
     });
 
+    // Import Excel de clients : Admin et Gest. Officine
+    const btnImport = document.getElementById('btn-import-clients');
+    if (btnImport) btnImport.style.display = roleIs('admin', 'gest_officine') ? '' : 'none';
+
+    // Inventaire : chaque gestionnaire ne voit que sa zone (Admin et Auditeur : les deux)
+    const secOff = document.getElementById('inv-section-officine');
+    const secEnt = document.getElementById('inv-section-entrepot');
+    if (secOff) secOff.style.display = roleIs('admin', 'auditeur', 'gest_officine') ? '' : 'none';
+    if (secEnt) secEnt.style.display = roleIs('admin', 'auditeur', 'gest_entrepot') ? '' : 'none';
+
     // Validation des ajustements d'inventaire : Administrateur uniquement
-    ['btn-adjust-inventaire', 'btn-adjust-officine', 'btn-adjust-entrepot'].forEach(id => {
+    ['btn-adjust-officine', 'btn-adjust-entrepot'].forEach(id => {
         const btn = document.getElementById(id);
         if (btn) btn.style.display = roleIs('admin') ? '' : 'none';
     });
@@ -590,7 +603,7 @@ async function printFacture(id) {
             </div>
             <div style="text-align: center; margin-top: 25px; border-top: 1px solid #000; padding-top: 8px; font-size: 10px;">
                 <p style="margin: 0; font-weight: bold;">Les médicaments vendus ne sont pas repris.</p>
-                <p style="margin: 3px 0 0 0; color: #444;">Solutions : Agence Satmak © 2026</p>
+                <p style="margin: 3px 0 0 0; color: #444;">Solutions : Agence Satmak © ${new Date().getFullYear()}</p>
             </div>
         </div>
     `;
@@ -602,17 +615,119 @@ async function printFacture(id) {
 }
 
 // ==================== 12. CRM ====================
+// ==================== 10bis. OUTILS EXPORT / IMPORT (PDF + Excel) ====================
+const CLINIC_NAME = "Établissement Médical Saint Théophile d'Espérance";
+
+// Bibliothèques chargées à la demande (uniquement quand on exporte/importe)
+async function loadXLSX() {
+    const m = await import('https://cdn.jsdelivr.net/npm/xlsx@0.18.5/+esm');
+    return m.default || m;
+}
+async function loadPDF() {
+    const { jsPDF } = await import('https://cdn.jsdelivr.net/npm/jspdf@2.5.1/+esm');
+    const at = await import('https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/+esm');
+    return { jsPDF, autoTable: at.default || at.autoTable };
+}
+function fileStamp() { return new Date().toISOString().slice(0, 10); }
+
+async function makePdf(title, head, rows, fileName, subtitle = '') {
+    try {
+        const { jsPDF, autoTable } = await loadPDF();
+        const doc = new jsPDF({ orientation: 'landscape' });
+        doc.setFontSize(14); doc.text(CLINIC_NAME, 14, 14);
+        doc.setFontSize(11); doc.text(title, 14, 21);
+        doc.setFontSize(9);
+        doc.text(`Édité le ${new Date().toLocaleString('fr-FR')} par ${state.userProfile?.full_name || state.currentUser?.email || ''}${subtitle ? ' — ' + subtitle : ''}`, 14, 27);
+        autoTable(doc, { head: [head], body: rows, startY: 32, styles: { fontSize: 8 }, headStyles: { fillColor: [31, 115, 115] } });
+        doc.save(fileName);
+    } catch (e) { showToast("Erreur export PDF : " + e.message, "error"); }
+}
+async function makeXlsx(sheetName, head, rows, fileName) {
+    try {
+        const XLSX = await loadXLSX();
+        const ws = XLSX.utils.aoa_to_sheet([head, ...rows]);
+        ws['!cols'] = head.map(h => ({ wch: Math.max(14, String(h).length + 4) }));
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, sheetName);
+        XLSX.writeFile(wb, fileName);
+    } catch (e) { showToast("Erreur export Excel : " + e.message, "error"); }
+}
+
+// ==================== 10ter. CLIENTS (CRM) ====================
+function openClientModal(clientId) {
+    const c = clientId ? state.clients.find(x => x.id === clientId) : null;
+    document.getElementById('client-modal-title').textContent = c ? 'Modifier le patient' : 'Nouveau Patient';
+    document.getElementById('nc-id').value = c ? c.id : '';
+    document.getElementById('nc-name').value = c?.name || '';
+    document.getElementById('nc-phone').value = c?.phone || '';
+    document.getElementById('nc-email').value = c?.email || '';
+    document.getElementById('nc-whatsapp').value = c?.whatsapp || '';
+    openModal('modal-add-client');
+}
+
 async function addClient() {
+    const id = document.getElementById('nc-id')?.value;
     const name = document.getElementById('nc-name')?.value.trim();
     const phone = document.getElementById('nc-phone')?.value.trim();
+    const email = document.getElementById('nc-email')?.value.trim() || null;
+    const whatsapp = document.getElementById('nc-whatsapp')?.value.trim() || null;
     if(!name || !phone) return showToast('⚠️ Nom et téléphone obligatoires', 'error');
+    if(email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return showToast('⚠️ Email invalide', 'error');
 
-    const { error } = await supabase.from('clients').insert([{ name, phone, debt: 0 }]);
-    if(error) return showToast('Erreur lors de la création du client: ' + error.message, 'error');
+    const { error } = id
+        ? await supabase.from('clients').update({ name, phone, email, whatsapp }).eq('id', id)
+        : await supabase.from('clients').insert([{ name, phone, email, whatsapp, debt: 0 }]);
+    if(error) return showToast('Erreur client : ' + error.message, 'error');
 
     closeModal('modal-add-client');
-    showToast(`✅ Client enregistré`);
+    showToast(id ? '✅ Client modifié' : '✅ Client enregistré');
     await loadDatabase();
+}
+
+function clientRows() {
+    return state.clients.map(c => [c.name || '', c.phone || '', c.email || '', c.whatsapp || '', Number(c.debt) || 0]);
+}
+const CLIENT_HEAD = ['Nom', 'Téléphone', 'Email', 'WhatsApp', 'Dette (FCFA)'];
+
+function exportClientsExcel() {
+    if (!state.clients.length) return showToast('Aucun client à exporter', 'error');
+    makeXlsx('Clients', CLIENT_HEAD, clientRows(), `clients_${fileStamp()}.xlsx`);
+}
+function exportClientsPDF() {
+    if (!state.clients.length) return showToast('Aucun client à exporter', 'error');
+    makePdf('Liste des clients', CLIENT_HEAD, clientRows(), `clients_${fileStamp()}.pdf`);
+}
+
+async function importClientsFile(file) {
+    if (!file) return;
+    try {
+        const XLSX = await loadXLSX();
+        const wb = XLSX.read(await file.arrayBuffer(), { type: 'array' });
+        const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: '' });
+        const norm = s => String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
+        const pick = (r, ...keys) => {
+            for (const k of Object.keys(r)) if (keys.includes(norm(k))) return String(r[k]).trim();
+            return '';
+        };
+        const known = new Set(state.clients.map(c => String(c.phone || '').replace(/\s/g, '')));
+        const toInsert = [];
+        let skipped = 0;
+        for (const r of rows) {
+            const name = pick(r, 'nom', 'name');
+            const phone = pick(r, 'telephone', 'tel', 'phone');
+            if (!name || !phone) { skipped++; continue; }
+            const key = phone.replace(/\s/g, '');
+            if (known.has(key)) { skipped++; continue; }
+            known.add(key);
+            toInsert.push({ name, phone, email: pick(r, 'email', 'e-mail', 'mail') || null, whatsapp: pick(r, 'whatsapp') || null, debt: 0 });
+        }
+        if (!toInsert.length) return showToast(`Aucun nouveau client à importer (${skipped} ligne(s) ignorée(s))`, 'error');
+        const { error } = await supabase.from('clients').insert(toInsert);
+        if (error) return showToast('Erreur import : ' + error.message, 'error');
+        showToast(`✅ ${toInsert.length} client(s) importé(s), ${skipped} ignoré(s)`);
+        await loadDatabase();
+    } catch (e) { showToast("Fichier illisible : " + e.message, "error"); }
+    finally { const inp = document.getElementById('import-clients-file'); if (inp) inp.value = ''; }
 }
 
 function renderCRM() {
@@ -620,7 +735,7 @@ function renderCRM() {
     if(!body) return;
     
     if(!state.clients.length) {
-        body.innerHTML = `<tr><td colspan="4" class="px-6 py-8 text-center text-gray-400">Aucun profil patient enregistré</td></tr>`;
+        body.innerHTML = `<tr><td colspan="6" class="px-6 py-8 text-center text-gray-400">Aucun profil patient enregistré</td></tr>`;
         return;
     }
     
@@ -633,9 +748,12 @@ function renderCRM() {
             <tr class="hover:bg-gray-50/50">
                 <td class="px-6 py-4 font-bold text-gray-900">${escapeHtml(c.name)}</td>
                 <td class="px-6 py-4 text-gray-500">${escapeHtml(c.phone) || '—'}</td>
+                <td class="px-6 py-4 text-gray-500">${escapeHtml(c.email) || '—'}</td>
+                <td class="px-6 py-4 text-gray-500">${escapeHtml(c.whatsapp) || '—'}</td>
                 <td class="px-6 py-4"><span class="px-2.5 py-0.5 rounded text-xs font-bold ${debt > 0 ? 'bg-red-100 text-red-700':'bg-green-100 text-green-700'}">${debt > 0 ? fmtMoney(debt) : 'Soldé'}</span></td>
-                <td class="px-6 py-4 text-right">
+                <td class="px-6 py-4 text-right whitespace-nowrap">
                     <button data-id="${c.id}" class="btn-detail-client text-slate-600 border border-gray-200 px-2.5 py-1 rounded-lg cursor-pointer text-xs font-semibold mr-2 hover:bg-gray-50">Dossier</button>
+                    ${canRecover ? `<button data-id="${c.id}" class="btn-edit-client text-slate-600 border border-gray-200 px-2.5 py-1 rounded-lg cursor-pointer text-xs font-semibold mr-2 hover:bg-gray-50">Modifier</button>`:''}
                     ${debt > 0 && canRecover ? `<button data-id="${c.id}" data-debt="${debt}" class="btn-pay-debt bg-green-600 text-white px-2.5 py-1 rounded-lg cursor-pointer text-xs font-bold hover:bg-green-700">Recouvrer</button>`:''}
                 </td>
             </tr>
@@ -643,6 +761,7 @@ function renderCRM() {
     }).join('');
 
     body.querySelectorAll('.btn-detail-client').forEach(btn => btn.onclick = () => showClientDetail(btn.dataset.id));
+    body.querySelectorAll('.btn-edit-client').forEach(btn => btn.onclick = () => openClientModal(btn.dataset.id));
     body.querySelectorAll('.btn-pay-debt').forEach(btn => btn.onclick = () => payClientDebt(btn.dataset.id, Number(btn.dataset.debt)));
 
     applyRoleRestrictions();
@@ -655,6 +774,7 @@ function showClientDetail(clientId) {
     document.getElementById('crm-list-view').style.display = 'none';
     document.getElementById('crm-detail-view').style.display = 'block';
     document.getElementById('detail-client-name').textContent = client.name;
+    document.getElementById('detail-client-contact').textContent = [client.phone, client.email, client.whatsapp ? 'WhatsApp : ' + client.whatsapp : ''].filter(Boolean).join(' · ');
     
     const associatedSales = state.sales.filter(s => s.client_id === clientId);
     const cumulativeSpent = associatedSales.reduce((a, b) => a + Number(b.total), 0);
@@ -740,55 +860,117 @@ function updatePhysicalCount(productId, zone, rawValue) {
     }, 500);
 }
 
-function renderInventaireZone(zone, tbodyId) {
+// Données d'une zone : logique vs physique, écart calculé automatiquement
+function inventoryRows(zone) {
     const qtyKey = zone === 'officine' ? 'qtyOfficine' : 'qtyEntrepot';
-    document.getElementById(tbodyId).innerHTML = state.products.map(p => {
-        const k = `${p.id}_${zone}`;
-        const v = state.inventoryPhysical[k] !== undefined ? state.inventoryPhysical[k] : '';
-        return `<tr>
-            <td class="px-6 py-3 font-bold">${escapeHtml(p.name)}</td>
-            <td class="px-6 py-3 text-gray-500">${p[qtyKey]}</td>
-            <td class="px-6 py-3"><input type="number" value="${v}" data-id="${p.id}" data-zone="${zone}" class="inventory-input border p-1 w-20 rounded outline-none text-center font-semibold"></td>
-        </tr>`;
-    }).join('');
-    document.querySelectorAll(`#${tbodyId} .inventory-input`).forEach(input => {
-        input.oninput = () => updatePhysicalCount(input.dataset.id, input.dataset.zone, input.value);
+    return state.products.map(p => {
+        const logical = Number(p[qtyKey]) || 0;
+        const raw = state.inventoryPhysical[`${p.id}_${zone}`];
+        const counted = raw !== undefined && raw !== null && raw !== '';
+        const physical = counted ? Number(raw) : null;
+        return { id: p.id, name: p.name, logical, counted, physical, ecart: counted ? physical - logical : null };
     });
 }
 
+function ecartLabel(e) {
+    if (e === null) return 'Non compté';
+    if (e === 0) return 'Conforme';
+    return e < 0 ? 'Perte / manquant' : 'Surplus';
+}
+
+function updateEcartCell(productId, zone) {
+    const row = inventoryRows(zone).find(r => r.id === productId);
+    const cell = document.getElementById(`ecart-${zone}-${productId}`);
+    if (!row || !cell) return;
+    if (row.ecart === null) { cell.innerHTML = '<span class="text-gray-400">—</span>'; }
+    else {
+        const cls = row.ecart === 0 ? 'bg-green-100 text-green-700' : (row.ecart < 0 ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700');
+        cell.innerHTML = `<span class="px-2.5 py-0.5 rounded text-xs font-bold ${cls}">${row.ecart > 0 ? '+' : ''}${row.ecart}</span>`;
+    }
+    const adj = document.querySelector(`.btn-adjust-one[data-id="${productId}"][data-zone="${zone}"]`);
+    if (adj) adj.disabled = row.ecart === null || row.ecart === 0;
+    updateInventoryResume(zone);
+}
+
+function updateInventoryResume(zone) {
+    const rows = inventoryRows(zone);
+    const ok = rows.filter(r => r.ecart === 0).length;
+    const loss = rows.filter(r => r.ecart !== null && r.ecart < 0).length;
+    const sur = rows.filter(r => r.ecart !== null && r.ecart > 0).length;
+    const el = document.getElementById(`inv-resume-${zone}`);
+    if (el) el.textContent = `${ok} conforme(s) · ${loss} perte(s) · ${sur} surplus`;
+}
+
+function renderInventaireZone(zone, tbodyId) {
+    const isAdmin = roleIs('admin');
+    document.getElementById(tbodyId).innerHTML = inventoryRows(zone).map(r => `<tr>
+            <td class="px-6 py-3 font-bold">${escapeHtml(r.name)}</td>
+            <td class="px-6 py-3 text-gray-500">${r.logical}</td>
+            <td class="px-6 py-3"><input type="number" min="0" value="${r.counted ? r.physical : ''}" data-id="${r.id}" data-zone="${zone}" class="inventory-input border p-1 w-24 rounded outline-none text-center font-semibold"></td>
+            <td class="px-6 py-3" id="ecart-${zone}-${r.id}"></td>
+            <td class="px-6 py-3 text-right">${isAdmin ? `<button data-id="${r.id}" data-zone="${zone}" class="btn-adjust-one bg-emerald-600 text-white px-2.5 py-1 rounded-lg text-xs font-bold cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed">Ajuster</button>` : '<span class="text-xs text-gray-400">Admin</span>'}</td>
+        </tr>`).join('');
+    const tb = document.getElementById(tbodyId);
+    tb.querySelectorAll('.inventory-input').forEach(input => {
+        input.oninput = () => { updatePhysicalCount(input.dataset.id, input.dataset.zone, input.value); updateEcartCell(input.dataset.id, input.dataset.zone); };
+    });
+    tb.querySelectorAll('.btn-adjust-one').forEach(btn => btn.onclick = () => ajusterProduit(btn.dataset.id, btn.dataset.zone));
+    state.products.forEach(p => updateEcartCell(p.id, zone));
+}
+
 function renderInventaire() {
-    // Officine ET entrepôt sont désormais tous les deux couverts.
-    // Le HTML doit contenir #inventaire-body-officine et #inventaire-body-entrepot.
-    if (document.getElementById('inventaire-body-officine')) renderInventaireZone('officine', 'inventaire-body-officine');
-    if (document.getElementById('inventaire-body-entrepot')) renderInventaireZone('entrepot', 'inventaire-body-entrepot');
-    // Compat rétro si l'ancien tbody unique existe encore (officine uniquement)
-    if (document.getElementById('inventaire-body')) renderInventaireZone('officine', 'inventaire-body');
+    renderInventaireZone('officine', 'inventaire-body-officine');
+    renderInventaireZone('entrepot', 'inventaire-body-entrepot');
     applyRoleRestrictions();
 }
 
+async function ajusterProduit(productId, zone) {
+    const row = inventoryRows(zone).find(r => r.id === productId);
+    if (!row || row.ecart === null || row.ecart === 0) return showToast("Rien à ajuster pour ce produit", "error");
+    if (!confirm(`Ajuster « ${row.name} » (${zone}) de ${row.logical} à ${row.physical} (écart ${row.ecart > 0 ? '+' : ''}${row.ecart}) ?`)) return;
+    const { error } = await supabase.rpc('apply_inventory_adjustment', {
+        p_product_id: productId, p_zone: zone, p_new_qty: row.physical, p_user_id: state.currentUser.id
+    });
+    if (error) return showToast("Erreur : " + error.message, "error");
+    showToast(`✅ ${row.name} ajusté`);
+    await loadDatabase();
+    renderInventaire();
+}
+
 async function appliquerAjustementsGlobaux(zone) {
-    // zone = 'officine' | 'entrepot' | undefined (undefined = les deux)
-    const keys = Object.keys(state.inventoryPhysical).filter(k => !zone || k.endsWith('_' + zone));
-    if(!keys.length) return showToast("Aucune donnée d'inventaire saisie", "error");
-    
-    if(!confirm(`Voulez-vous écraser les valeurs théoriques par les comptages physiques réels ?`)) return;
+    const zones = zone ? [zone] : ['officine', 'entrepot'];
+    const todo = [];
+    zones.forEach(z => inventoryRows(z).filter(r => r.ecart !== null && r.ecart !== 0).forEach(r => todo.push({ ...r, zone: z })));
+    if (!todo.length) return showToast("Aucun écart à ajuster", "error");
+    if (!confirm(`Appliquer ${todo.length} ajustement(s) de stock (physique → logique) ?`)) return;
 
     let errors = 0;
-    for(let key of keys) {
-        const [productId, z] = key.split('_');
-        const newQty = state.inventoryPhysical[key];
-
+    for (const r of todo) {
         const { error } = await supabase.rpc('apply_inventory_adjustment', {
-            p_product_id: productId,
-            p_zone: z,
-            p_new_qty: newQty,
-            p_user_id: state.currentUser.id
+            p_product_id: r.id, p_zone: r.zone, p_new_qty: r.physical, p_user_id: state.currentUser.id
         });
-        if (error) { errors++; showToast(`Erreur sur un produit: ${error.message}`, "error"); }
+        if (error) { errors++; showToast(`Erreur sur ${r.name}: ${error.message}`, "error"); }
     }
-
-    if (errors === 0) showToast("Ajustement de stock appliqué");
+    if (errors === 0) showToast("Ajustements de stock appliqués");
     await loadDatabase();
+    renderInventaire();
+}
+
+// Document d'écart téléchargeable (uniquement les produits comptés)
+const ECART_HEAD = ['Produit', 'Stock logique', 'Stock physique', 'Écart', 'Constat'];
+function ecartRows(zone) {
+    return inventoryRows(zone).filter(r => r.counted)
+        .map(r => [r.name, r.logical, r.physical, r.ecart, ecartLabel(r.ecart)]);
+}
+function exportEcartsExcel(zone) {
+    const rows = ecartRows(zone);
+    if (!rows.length) return showToast("Aucun comptage saisi pour cette zone", "error");
+    makeXlsx(`Écarts ${zone}`, ECART_HEAD, rows, `ecarts_${zone}_${fileStamp()}.xlsx`);
+}
+function exportEcartsPDF(zone) {
+    const rows = ecartRows(zone);
+    if (!rows.length) return showToast("Aucun comptage saisi pour cette zone", "error");
+    makePdf(`Document d'écart d'inventaire — ${zone === 'officine' ? 'Officine' : 'Entrepôt'}`, ECART_HEAD, rows, `ecarts_${zone}_${fileStamp()}.pdf`);
 }
 
 // ==================== 14. COMPTES (Administrateur principal uniquement) ====================
@@ -877,6 +1059,13 @@ window.showClientDetail = showClientDetail;
 window.payClientDebt = payClientDebt;
 window.handleLogout = handleLogout;
 window.renderInventaire = renderInventaire;
+window.openClientModal = openClientModal;
+window.exportClientsExcel = exportClientsExcel;
+window.exportClientsPDF = exportClientsPDF;
+window.exportEcartsExcel = exportEcartsExcel;
+window.exportEcartsPDF = exportEcartsPDF;
+window.ajusterProduit = ajusterProduit;
+document.getElementById('import-clients-file')?.addEventListener('change', e => importClientsFile(e.target.files[0]));
 window.updatePhysicalCount = updatePhysicalCount;
 window.setCartQty = setCartQty;
 window.renderComptes = renderComptes;
