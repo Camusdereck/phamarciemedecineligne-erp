@@ -79,6 +79,9 @@
                 <a onclick="navigate('inventaire')" id="nav-inventaire" class="nav-item flex items-center gap-3 px-5 py-3 text-slate-400 text-sm font-medium hover:bg-slate-800 hover:text-white cursor-pointer border-l-4 border-transparent">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg> Audit Inventaire
                 </a>
+                <a onclick="navigate('comptes')" id="nav-comptes" class="nav-item flex items-center gap-3 px-5 py-3 text-slate-400 text-sm font-medium hover:bg-slate-800 hover:text-white cursor-pointer border-l-4 border-transparent">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="7" r="4"/><path d="M5.5 21a6.5 6.5 0 0113 0"/><circle cx="18" cy="6" r="2.5"/></svg> Comptes
+                </a>
             </nav>
 
             <div class="p-5 border-t border-slate-800">
@@ -200,7 +203,7 @@
                             <div class="p-5 border-t">
                                 <div class="flex justify-between items-center mb-4"><span class="text-base font-bold">Total</span><span id="cart-total" class="text-2xl font-bold text-medical-600 font-display">0 FCFA</span></div>
                                 <select id="payment-mode" class="w-full px-4 py-2.5 border rounded-lg mb-3 text-sm bg-white outline-none"><option value="especes">Espèces</option><option value="mobile_money">Mobile Money</option><option value="credit">Crédit</option></select>
-                                <button onclick="validateSale()" class="w-full bg-medical-600 text-white font-bold py-3 rounded-xl hover:bg-medical-700 cursor-pointer">Encaisser & Facturer</button>
+                                <button onclick="validateSale()" data-action="validate-sale" class="w-full bg-medical-600 text-white font-bold py-3 rounded-xl hover:bg-medical-700 cursor-pointer">Encaisser & Facturer</button>
                             </div>
                         </div>
                     </div>
@@ -208,7 +211,7 @@
 
                 <div id="page-crm" class="page hidden space-y-6">
                     <div id="crm-list-view">
-                        <div class="flex justify-between mb-4"><h2 class="font-display text-2xl font-bold">Clientèle</h2><button onclick="openModal('modal-add-client')" class="px-4 py-2 bg-medical-600 text-white rounded-xl text-sm font-medium shadow-sm cursor-pointer">Nouveau Client</button></div>
+                        <div class="flex justify-between mb-4"><h2 class="font-display text-2xl font-bold">Clientèle</h2><button id="btn-open-add-client" onclick="openModal('modal-add-client')" class="px-4 py-2 bg-medical-600 text-white rounded-xl text-sm font-medium shadow-sm cursor-pointer">Nouveau Client</button></div>
                         <div class="bg-white rounded-xl border shadow-sm overflow-hidden"><table class="w-full text-left"><tbody id="crm-body" class="divide-y text-sm"></tbody></table></div>
                     </div>
                     <div id="crm-detail-view" class="hidden space-y-6">
@@ -223,7 +226,7 @@
                 </div>
 
                 <div id="page-inventaire" class="page hidden space-y-6">
-                    <div class="flex justify-between items-center"><h2 class="font-display text-2xl font-bold">Rapprochement d'Inventaire</h2><button onclick="appliquerAjustementsGlobaux()" class="px-4 py-2 bg-emerald-600 text-white rounded-xl text-sm font-bold shadow-md cursor-pointer">Appliquer Ajustements</button></div>
+                    <div class="flex justify-between items-center"><h2 class="font-display text-2xl font-bold">Rapprochement d'Inventaire</h2><button id="btn-adjust-inventaire" onclick="appliquerAjustementsGlobaux()" class="px-4 py-2 bg-emerald-600 text-white rounded-xl text-sm font-bold shadow-md cursor-pointer">Appliquer Ajustements</button></div>
                     <div class="bg-white p-4 rounded-xl border flex gap-6 text-sm"><span id="inv-conforme-count" class="font-bold text-green-700">0</span><span id="inv-perte-count" class="font-bold text-red-700">0</span><span id="inv-surplus-count" class="font-bold text-blue-700">0</span></div>
                     <div class="bg-white rounded-xl border shadow-sm overflow-hidden"><table class="w-full text-left"><tbody id="inventaire-body" class="divide-y text-sm"></tbody></table></div>
                 </div>
@@ -231,6 +234,22 @@
                 <div id="page-audit" class="page hidden space-y-6">
                     <h2 class="font-display text-2xl font-bold">Traçabilité Mouvements</h2>
                     <div class="bg-white rounded-xl border shadow-sm overflow-hidden"><table class="w-full text-left"><tbody id="audit-body" class="divide-y text-sm"></tbody></table></div>
+                </div>
+
+                <div id="page-comptes" class="page hidden space-y-6">
+                    <div class="flex justify-between items-center">
+                        <h2 class="font-display text-2xl font-bold">Comptes utilisateurs</h2>
+                        <button onclick="openModal('modal-add-account')" class="px-4 py-2 bg-medical-600 text-white rounded-xl text-sm font-medium shadow-sm cursor-pointer">Nouveau Compte</button>
+                    </div>
+                    <p class="text-xs text-gray-500 bg-amber-50 border border-amber-100 rounded-xl px-4 py-3">
+                        Pour ajouter un nouveau compte, crée d'abord l'utilisateur dans Supabase (Authentication &gt; Users), puis colle son UUID ici avec son nom et son rôle.
+                    </p>
+                    <div class="bg-white rounded-xl border shadow-sm overflow-hidden">
+                        <table class="w-full text-left">
+                            <thead><tr class="bg-gray-50 border-b text-xs font-bold text-gray-500 uppercase"><th class="px-6 py-3">Nom</th><th class="px-6 py-3">Rôle</th><th class="px-6 py-3 text-right">Action</th></tr></thead>
+                            <tbody id="comptes-body" class="divide-y text-sm"></tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </main>
@@ -278,6 +297,22 @@
             <input type="text" id="nc-name" placeholder="Nom *" class="w-full px-3 py-2 border rounded-lg mb-4 text-sm outline-none">
             <input type="text" id="nc-phone" placeholder="Téléphone *" class="w-full px-3 py-2 border rounded-lg mb-4 text-sm outline-none">
             <div class="flex gap-3"><button onclick="closeModal('modal-add-client')" class="flex-1 py-2 bg-gray-100 rounded-xl font-bold cursor-pointer">Annuler</button><button onclick="addClient()" class="flex-1 py-2 bg-medical-600 text-white rounded-xl font-bold cursor-pointer">Créer</button></div>
+        </div>
+    </div>
+
+    <div id="modal-add-account" class="modal-overlay fixed inset-0 bg-slate-900/50 z-50 flex items-center justify-center p-4">
+        <div class="modal-box bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl">
+            <h3 class="font-display font-bold text-xl mb-4">Nouveau Compte</h3>
+            <input type="text" id="na-uuid" placeholder="UUID Supabase de l'utilisateur *" class="w-full px-3 py-2 border rounded-lg mb-4 text-sm outline-none font-mono">
+            <input type="text" id="na-name" placeholder="Nom complet *" class="w-full px-3 py-2 border rounded-lg mb-4 text-sm outline-none">
+            <select id="na-role" class="w-full px-3 py-2 border rounded-lg mb-4 text-sm bg-white outline-none">
+                <option value="titulaire">Titulaire</option>
+                <option value="adjoint">Adjoint</option>
+                <option value="vendeur" selected>Vendeur / Caissier</option>
+                <option value="magasinier">Magasinier</option>
+                <option value="comptable">Comptable</option>
+            </select>
+            <div class="flex gap-3"><button onclick="closeModal('modal-add-account')" class="flex-1 py-2 bg-gray-100 rounded-xl font-bold cursor-pointer">Annuler</button><button onclick="createAccountProfile()" class="flex-1 py-2 bg-medical-600 text-white rounded-xl font-bold cursor-pointer">Créer</button></div>
         </div>
     </div>
 

@@ -97,16 +97,25 @@ function escapeHtml(str) {
 // côté Supabase (RLS + vérifications dans les fonctions RPC) — ceci ne fait
 // qu'adapter ce que chacun VOIT, pour une interface cohérente avec son métier.
 const ROLE_PAGES = {
-    titulaire: ['dashboard', 'entrepot', 'officine', 'caisse', 'crm', 'audit', 'inventaire', 'comptes'],
-    adjoint: ['dashboard', 'entrepot', 'officine', 'caisse', 'crm', 'audit', 'inventaire'],
-    vendeur: ['caisse', 'crm'],
-    magasinier: ['entrepot', 'officine', 'inventaire'],
-    comptable: ['dashboard', 'crm', 'audit']
+    admin: ['dashboard', 'entrepot', 'officine', 'caisse', 'crm', 'audit', 'inventaire', 'comptes'],
+    gest_entrepot: ['entrepot', 'audit'],
+    gest_officine: ['officine', 'caisse', 'crm', 'audit', 'inventaire'],
+    auditeur: ['dashboard', 'entrepot', 'officine', 'crm', 'audit', 'inventaire']
 };
 const ROLE_DEFAULT_PAGE = {
-    titulaire: 'dashboard', adjoint: 'dashboard', comptable: 'dashboard',
-    vendeur: 'caisse', magasinier: 'entrepot'
+    admin: 'dashboard', auditeur: 'dashboard',
+    gest_entrepot: 'entrepot', gest_officine: 'caisse'
 };
+const ROLE_LABELS = {
+    admin: 'Administrateur principal',
+    gest_entrepot: 'Gestionnaire Entrepôt',
+    gest_officine: 'Gestionnaire Officine',
+    auditeur: 'Auditeur / Inventaire'
+};
+
+function roleIs(...roles) {
+    return roles.includes(state.userProfile?.role);
+}
 
 function getAllowedPages() {
     const role = state.userProfile?.role;
@@ -120,21 +129,20 @@ function applyRoleRestrictions() {
         a.style.display = allowed.includes(page) ? '' : 'none';
     });
 
-    // Bouton "Nouveau Client" : le Comptable est en lecture seule sur le CRM
+    // Clients : création réservée à l'Admin et au Gest. Officine (l'Auditeur est en lecture seule)
     const btnAddClient = document.getElementById('btn-open-add-client');
-    if (btnAddClient) btnAddClient.style.display = (state.userProfile?.role === 'comptable') ? 'none' : '';
+    if (btnAddClient) btnAddClient.style.display = roleIs('admin', 'gest_officine') ? '' : 'none';
 
-    // Vente à crédit : réservée à Titulaire/Adjoint
-    const paymentMode = document.getElementById('payment-mode');
-    if (paymentMode) {
-        const creditOption = paymentMode.querySelector('option[value="credit"]');
-        if (creditOption) creditOption.style.display = ['titulaire', 'adjoint'].includes(state.userProfile?.role) ? '' : 'none';
-    }
+    // Entrepôt : création de produit et réception réservées à l'Admin et au Gest. Entrepôt
+    ['btn-new-product', 'btn-receive-stock'].forEach(id => {
+        const btn = document.getElementById(id);
+        if (btn) btn.style.display = roleIs('admin', 'gest_entrepot') ? '' : 'none';
+    });
 
-    // Validation des ajustements d'inventaire : pas pour le Magasinier (peut compter, pas valider)
+    // Validation des ajustements d'inventaire : Administrateur uniquement
     ['btn-adjust-inventaire', 'btn-adjust-officine', 'btn-adjust-entrepot'].forEach(id => {
         const btn = document.getElementById(id);
-        if (btn) btn.style.display = (state.userProfile?.role === 'magasinier') ? 'none' : '';
+        if (btn) btn.style.display = roleIs('admin') ? '' : 'none';
     });
 }
 
@@ -150,7 +158,7 @@ async function loadDatabase() {
             let displayName = state.userProfile?.full_name || state.currentUser.email.split('@')[0];
             document.getElementById('user-name').textContent = displayName;
             document.getElementById('user-avatar').textContent = displayName.charAt(0).toUpperCase();
-            document.getElementById('user-role').textContent = state.userProfile?.role || 'Personnel';
+            document.getElementById('user-role').textContent = ROLE_LABELS[state.userProfile?.role] || state.userProfile?.role || 'Personnel';
 
             if (!state.userProfile) {
                 showToast("⚠️ Aucun profil associé à ce compte. Contacte le Titulaire.", "error");
@@ -346,7 +354,7 @@ function renderEntrepot() {
         <tr class="hover:bg-gray-50/50">
             <td class="px-6 py-4 font-bold">${escapeHtml(p.name)}</td>
             <td class="px-6 py-4 font-bold text-blue-600">${p.qtyEntrepot} u.</td>
-            <td class="px-6 py-4 text-right"><button data-id="${p.id}" class="btn-transfer text-blue-600 font-bold text-xs cursor-pointer hover:underline">Transférer</button></td>
+            <td class="px-6 py-4 text-right">${roleIs('admin', 'gest_entrepot') ? `<button data-id="${p.id}" class="btn-transfer text-blue-600 font-bold text-xs cursor-pointer hover:underline">Transférer</button>` : ''}</td>
         </tr>
     `).join('');
     body.querySelectorAll('.btn-transfer').forEach(btn => btn.onclick = () => openTransferModal(btn.dataset.id));
@@ -549,8 +557,8 @@ async function printFacture(id) {
     document.getElementById('print-receipt-area').innerHTML = `
         <div style="font-family: 'Courier New', monospace; max-width: 290px; margin: 0 auto; color: #000; padding: 5px; font-size: 12px; line-height: 1.3;">
             <div style="text-align: center; margin-bottom: 15px; border-bottom: 1px dashed #000; padding-bottom: 10px;">
-                <h2 style="margin: 0; font-size: 15px; font-weight: bold; text-transform: uppercase;">PHARMACIE DR SOKO WAZA</h2>
-                <p style="margin: 3px 0 0 0; font-size: 11px;">Officine & Logistique Médicale</p>
+                <h2 style="margin: 0; font-size: 14px; font-weight: bold; text-transform: uppercase;">Établissement Médical Saint Théophile d'Espérance</h2>
+                <p style="margin: 4px 0 0 0; font-size: 12px; font-weight: bold;">Reçu de paiement pharmacie</p>
                 <p style="margin: 2px 0 0 0; font-size: 11px;">Tél: +225 07 00 11 22</p>
             </div>
             <div style="margin-bottom: 10px; font-size: 11px;">
@@ -617,7 +625,7 @@ function renderCRM() {
     }
     
     const role = state.userProfile?.role;
-    const canRecover = ['titulaire', 'adjoint', 'comptable'].includes(role);
+    const canRecover = ['admin', 'gest_officine'].includes(role);
 
     body.innerHTML = state.clients.map(c => {
         const debt = Number(c.debt) || 0;
@@ -693,11 +701,20 @@ async function payClientDebt(clientId, amount) {
 }
 
 // ==================== 13. INVENTAIRE & AUDIT ====================
+const ACTION_LABELS = {
+    VENTE: 'Vente',
+    RECEPTION: 'Réception fournisseur',
+    TRANSFERT_OFFICINE: 'Transfert entrepôt → officine',
+    AJUSTEMENT: "Ajustement d'inventaire"
+};
+
 function renderAudit() {
     document.getElementById('audit-body').innerHTML = state.audits.map(a => {
         const p = state.products.find(x => x.id === a.product_id);
         const u = state.profiles.find(x => x.id === a.user_id);
-        return `<tr><td class="px-6 py-3">${fmtDate(a.created_at)}</td><td class="px-6 py-3 font-bold">${escapeHtml(u?.full_name||'N/A')}</td><td class="px-6 py-3 text-xs font-semibold">${escapeHtml(a.action_type)}</td><td class="px-6 py-3 font-bold">${escapeHtml(p?.name||'Article supprimé')}</td><td class="px-6 py-3 font-bold">${a.qty_moved}</td></tr>`;
+        const label = ACTION_LABELS[a.action_type] || a.action_type;
+        const qty = (a.action_type === 'AJUSTEMENT' && a.qty_moved > 0) ? '+' + a.qty_moved : a.qty_moved;
+        return `<tr><td class="px-6 py-3">${fmtDate(a.created_at)}</td><td class="px-6 py-3 font-bold">${escapeHtml(u?.full_name||'N/A')}</td><td class="px-6 py-3 text-xs font-semibold">${escapeHtml(label)}</td><td class="px-6 py-3 font-bold">${escapeHtml(p?.name||'Article supprimé')}</td><td class="px-6 py-3 font-bold">${qty}</td></tr>`;
     }).join('');
 }
 
@@ -730,8 +747,8 @@ function renderInventaireZone(zone, tbodyId) {
         const v = state.inventoryPhysical[k] !== undefined ? state.inventoryPhysical[k] : '';
         return `<tr>
             <td class="px-6 py-3 font-bold">${escapeHtml(p.name)}</td>
-            <td class="px-6 py-3 text-gray-500">${p[qtyKey]} (Théorique)</td>
-            <td><input type="number" value="${v}" data-id="${p.id}" data-zone="${zone}" class="inventory-input border p-1 w-20 rounded outline-none text-center font-semibold"></td>
+            <td class="px-6 py-3 text-gray-500">${p[qtyKey]}</td>
+            <td class="px-6 py-3"><input type="number" value="${v}" data-id="${p.id}" data-zone="${zone}" class="inventory-input border p-1 w-20 rounded outline-none text-center font-semibold"></td>
         </tr>`;
     }).join('');
     document.querySelectorAll(`#${tbodyId} .inventory-input`).forEach(input => {
@@ -774,18 +791,14 @@ async function appliquerAjustementsGlobaux(zone) {
     await loadDatabase();
 }
 
-// ==================== 14. COMPTES (Titulaire uniquement) ====================
-const ROLE_LABELS = {
-    titulaire: 'Titulaire', adjoint: 'Adjoint', vendeur: 'Vendeur / Caissier',
-    magasinier: 'Magasinier', comptable: 'Comptable'
-};
+// ==================== 14. COMPTES (Administrateur principal uniquement) ====================
 
 function renderComptes() {
     const body = document.getElementById('comptes-body');
     if (!body) return;
 
-    if (state.userProfile?.role !== 'titulaire') {
-        body.innerHTML = `<tr><td colspan="3" class="px-6 py-8 text-center text-gray-400">Accès réservé au Titulaire</td></tr>`;
+    if (state.userProfile?.role !== 'admin') {
+        body.innerHTML = `<tr><td colspan="3" class="px-6 py-8 text-center text-gray-400">Accès réservé à l'Administrateur principal</td></tr>`;
         return;
     }
 
@@ -812,8 +825,8 @@ function renderComptes() {
 }
 
 async function updateAccountRole(profileId, newRole) {
-    if (profileId === state.currentUser.id && newRole !== 'titulaire') {
-        if (!confirm("Vous êtes sur le point de retirer votre propre accès Titulaire. Continuer ?")) return;
+    if (profileId === state.currentUser.id && newRole !== 'admin') {
+        if (!confirm("Vous êtes sur le point de retirer votre propre accès Administrateur. Continuer ?")) return;
     }
     const { error } = await supabase.from('profiles').update({ role: newRole }).eq('id', profileId);
     if (error) return showToast("Erreur: " + error.message, "error");
